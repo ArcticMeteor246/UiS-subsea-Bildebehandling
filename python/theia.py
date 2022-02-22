@@ -134,6 +134,7 @@ def draw_on_img(pic, frames):
         cv2.putText(pic, f'Width:{a.true_width} cm',(a.position[0], a.position[1]+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
         cv2.drawContours(pic, a.box , -1, (0, 0, 0), 2 )
 
+
 def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe):
     print(f'Camera:{camera_id} started')
     cam = Camera(camera_id)
@@ -347,8 +348,8 @@ if __name__ == "__main__":
     #s.camera_status['front'][1] = 1
     #s.cam_front_id = 2
     
-    s.toggle_front()
-    print("test2")
+    #s.toggle_front()
+    #print("test2")
     
     #s.toggle_back()
     for __ in range(9999999):
