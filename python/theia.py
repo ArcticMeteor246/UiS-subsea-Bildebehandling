@@ -556,9 +556,6 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
     while run:
         if shared_list[1] == 1:
             shared_list[1] = 0
-            if shared_list[3] == 'sensor':
-                cam.update_data(shared_list[4])
-                shared_list[3] = 0
             if shared_list[2] == "video":
                 video_capture ^= True
                 if video_capture:
@@ -593,6 +590,9 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
                 else:
                     ln(f'Cameramode: {shared_list[2]}, is not supported')
                     shared_list[1] = 0
+        elif shared_list[3] == 'sensor':
+            cam.update_data(shared_list[4])
+            shared_list[3] = 0
         if mode == 0:
             pic = cam.aq_image(False, take_pic)
             take_pic = False
@@ -709,11 +709,11 @@ def pipe_com(connection, callback=None, name=None, list=None):
         while list[0]:
             temp = connection.recv()
             if (temp, dict):
-                list[4] = temp # Dictionary stored in index 3, can be dept, orientation etc
+                list[4] = temp # Dictionary stored in index 4, can be dept, orientation etc
                 list[3] = 'sensor' # Codeword for sensor data
             else:
                 list[2] = temp
-            list[1] = 1
+                list[1] = 1
 
 ## Checks if object positions overlap ##
 # Returns list without overlap #  
