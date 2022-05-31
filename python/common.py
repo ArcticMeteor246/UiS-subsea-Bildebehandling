@@ -176,8 +176,6 @@ class AutoMerd:
                 else:
                     vect = (self.speed if self.right else -self.speed, temp * self.offset_mult) # Velocity vector
                 return vect
-            else:
-                return False
         else: # Vertical direction, compensation for disparity left/right of rope
             if xpos:
                 temp = xpos - self.xcenter
@@ -188,7 +186,6 @@ class AutoMerd:
                         self.horisontal = True
                         self.new_data(xpos, ypos)
                 vect = (temp * self.offset_mult, self.speed)
-            else:
-                return False
+        return False
             
 
