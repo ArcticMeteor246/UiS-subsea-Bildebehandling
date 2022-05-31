@@ -510,7 +510,7 @@ def image_aqusition_thread(connection, boli):
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
-                # connection.send(msg) # Send data to camera thread
+                connection.send(msg) # Send data to camera thread
             elif mode == 3:
                 if new_pic:
                     new_pic = False
