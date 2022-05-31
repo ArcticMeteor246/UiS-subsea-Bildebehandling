@@ -82,7 +82,6 @@ def find_horizontal_line(matri): # Returns the ypos with the most white pixels f
             big = temp
             ypos = 10*a
     if not ypos==0:
-        print(big)
         return ypos
     else:
         return False
