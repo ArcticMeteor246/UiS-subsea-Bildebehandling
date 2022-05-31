@@ -251,7 +251,7 @@ class Mercury:
     def __init__(self, ip:str="0.0.0.0", port:int=6900) -> None:
         # Flag dictionary
         self.status ={'network': False, 'USB': False, 'intern': False}
-        self.function_list = [0,1,3,5] # Supported camera functions, 0: No prossesing, 1: Find fish, 3: Mosaikk, 5: Sleep
+        self.function_list = [0,1,2,3,5] # Supported camera functions, 0: No prossesing, 1: Find fish, 3: Mosaikk, 5: Sleep
         self.sensor = {"gyro": (0, 0, 0)}
 
         # USB socket
