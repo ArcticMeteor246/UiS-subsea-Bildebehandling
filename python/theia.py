@@ -465,7 +465,7 @@ def image_aqusition_thread(connection, boli):
     masks = [lower_2, upper_2, lower_red, upper_red]
     st_list = [] # List of images to stitch
     ath = Athena()
-    merd = AutoMerd(50, 1, (1280, 720))
+    merd = AutoMerd(25, 0.1, (1280, 720))
     new_pic = False
     stitch = False
     while boli:
@@ -746,6 +746,8 @@ class Theia():
         self.set_front_zero = [200, {"tilt": 0}]
         self.set_back_zero = [201, {"tilt": 0}]
         self.check_hw_id_cam()
+        self.new_controller_data = False
+        self.controller_data = (0, 0)
 
     def check_hw_id_cam(self):
         self.cam_front_id = self.find_cam("3-2.7") # Checks if a camera is connected on this port
@@ -822,7 +824,8 @@ class Theia():
             #print("Message revived from front camera: "+ msg)
             if isinstance(msg, list):
                 if msg[0].lower() == 'merd':
-                    pass # do something with data
+                    self.controller_data = msg[1]
+                    self.new_controller_data = True
 
 
     def send_camera_func(self, camera_id, msg):

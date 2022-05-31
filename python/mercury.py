@@ -429,6 +429,18 @@ class Mercury:
         else: 
             return False
 
+    def auto_control(self):
+        if self.thei.new_controller_data:
+            data = [0] * 8
+            data[1] = max(min(self.thei.controller_data[0], 127), -127)
+            data[2] = max(min(self.thei.controller_data[1], 127), -127)
+            
+            mld = self.serial_package_builder([70, data])
+            if not isinstance(mld, bytearray):
+                ln(f'{mld}')
+            else:
+                self.serial.write(mld)
+
 
     def ping(self):
         if self.status['USB']:

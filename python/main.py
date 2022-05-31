@@ -18,18 +18,18 @@ def main_loop():
     #m.thei.toggle_back()
 
     while(1):
-        for _ in range(4):
-            time.sleep(0.2)
-            #m.ping()
-            check = m.update_hud_data()
-            if not check:
-                print("Did not send data")
-            #time.sleep(0.7)
-            #print("Still running.  ", end='\r')
-            #time.sleep(0.7)
-            #print("Still running.. ", end='\r')
-            #time.sleep(0.7)
-            #print("Still running...", end='\r')
+        time.sleep(0.2)
+        #m.ping()
+        check = m.update_hud_data()
+        if not check:
+            print("Did not send data")
+        m.auto_control()
+        #time.sleep(0.7)
+        #print("Still running.  ", end='\r')
+        #time.sleep(0.7)
+        #print("Still running.. ", end='\r')
+        #time.sleep(0.7)
+        #print("Still running...", end='\r')
 
 if __name__ == "__main__":
     main_loop()
