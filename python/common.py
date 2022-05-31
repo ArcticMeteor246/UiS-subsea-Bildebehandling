@@ -105,7 +105,7 @@ def to_bitmap(pic, masks):
         hsv = cv2.cvtColor(pic, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, masks[0], masks[1])
         mask2 = cv2.inRange(hsv, masks[2], masks[3])
-        _, tempblack = cv2.threshold(b12, 70, 255, cv2.THRESH_BINARY)
+        _, tempblack = cv2.threshold(pic, 70, 255, cv2.THRESH_BINARY)
         canvas = np.zeros(tempblack.shape, np.uint8) # Heil svart maske
         mas2 = cv2.bitwise_or(mask, mask2, canvas)
         kernel = np.ones((5,5),np.uint8)
