@@ -164,13 +164,12 @@ class AutoMerd:
                     if self.right:
                         if xpos > self.xcenter:
                             self.horisontal = False
-                            #self.new_data(xpos, ypos)
+                            print(f'Changed direction')
                         else:
                             vect = (self.speed, temp) # Velocity vector
                     else:
                         if xpos < self.xcenter:
                             self.horisontal = True
-                            #self.new_data(xpos, ypos)
                         else:
                             vect = (-self.speed, temp * self.offset_mult) # Velocity vector
                 else:
@@ -184,7 +183,7 @@ class AutoMerd:
                 if ypos:
                     if ypos > self.ycenter:
                         self.horisontal = True
-                        self.new_data(xpos, ypos)
+                        print(f'Changed direction')
                 vect = (temp * self.offset_mult, self.speed)
         return False
             

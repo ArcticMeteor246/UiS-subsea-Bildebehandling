@@ -822,7 +822,7 @@ class Theia():
             #print("Message revived from front camera: "+ msg)
             if isinstance(msg, list):
                 if msg[0].lower() == 'merd':
-                    print(msg[1])
+                    pass # do something with data
 
 
     def send_camera_func(self, camera_id, msg):
