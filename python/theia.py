@@ -576,8 +576,8 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
                 cam.feed.release()
                 cv2.destroyAllWindows()
                 break
-            elif shared_list[2] == 'sensor':
-                cam.update_data(shared_list[3])
+            elif shared_list[3] == 'sensor':
+                cam.update_data(shared_list[4])
                 shared_list[3] = 0
             elif shared_list[2] == 'hud':
                 cam.hud != cam.hud
@@ -707,10 +707,12 @@ def pipe_com(connection, callback=None, name=None, list=None):
             callback(msg, name)
     else:
         while list[0]:
-            list[2] = connection.recv()
-            if isinstance(list[2], dict):
-                list[3] = list[2] # Dictionary stored in index 3, can be dept, orientation etc
-                list[2] = 'sensor' # Codeword for sensor data
+            temp = connection.recv()
+            if (temp, dict):
+                list[4] = list[2] # Dictionary stored in index 3, can be dept, orientation etc
+                list[3] = 'sensor' # Codeword for sensor data
+            else:
+                list[2] = temp
             list[1] = 1
 
 ## Checks if object positions overlap ##
