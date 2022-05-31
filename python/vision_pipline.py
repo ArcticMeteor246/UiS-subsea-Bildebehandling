@@ -6,7 +6,7 @@ import math
 from ROV import Rov
 from logging_init import generate_logging
 import timeit
-from theia import Camera
+#from theia import Camera
 
 from yolo_detect import camera
 
