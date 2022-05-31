@@ -709,7 +709,7 @@ def pipe_com(connection, callback=None, name=None, list=None):
         while list[0]:
             temp = connection.recv()
             if (temp, dict):
-                list[4] = list[2] # Dictionary stored in index 3, can be dept, orientation etc
+                list[4] = temp # Dictionary stored in index 3, can be dept, orientation etc
                 list[3] = 'sensor' # Codeword for sensor data
             else:
                 list[2] = temp
