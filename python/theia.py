@@ -240,7 +240,6 @@ class Camera():
     
     def draw_hud(self, pic):
         for a in range(-20,21, 5):
-            print(f"\tStreng: {self.sensor}")
             off = int(self.sensor['gyro'][2]*20+a*20 + self.middley)
             if 0 < off < self.height:
                 if(a%2==0):
@@ -709,7 +708,8 @@ def pipe_com(connection, callback=None, name=None, list=None):
     else:
         while list[0]:
             temp = connection.recv()
-            if (temp, dict):
+            if isinstance(temp, dict):
+                #print(f"\tSSS {temp}")
                 list[4] = temp # Dictionary stored in index 4, can be dept, orientation etc
                 list[3] = 'sensor' # Codeword for sensor data
             else:
