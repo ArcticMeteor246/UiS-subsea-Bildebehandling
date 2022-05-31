@@ -538,7 +538,7 @@ def image_aqusition_thread(connection, boli):
 def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, local = False):  
     print(f'Camera:{camera_id} started')
     cam = Camera(camera_id)
-    shared_list = [1, 0, 0, 0]
+    shared_list = [1, 0, 0, 0, 0]
     threading.Thread(name="Camera_con", target=pipe_com, daemon=True, args=(connection, None, None, shared_list)).start()
     fourcc = cv2.VideoWriter_fourcc(*'MPEG')
     run = True
