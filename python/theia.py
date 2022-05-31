@@ -575,6 +575,8 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
                     print(f'Mode set to {mode}')
                     if shared_list[2] == 3:
                         picture_IA_pipe.send('mosaikk')
+                    elif shared_list[2] == 2:
+                        picture_IA_pipe.send('automerd')
                     mode = int(mode)
                 else:
                     ln(f'Cameramode: {shared_list[2]}, is not supported')
