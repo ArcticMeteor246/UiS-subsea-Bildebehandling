@@ -240,6 +240,7 @@ class Camera():
     
     def draw_hud(self, pic):
         for a in range(-20,21, 5):
+            print(f"\tStreng: {self.sensor}")
             off = int(self.sensor['gyro'][2]*20+a*20 + self.middley)
             if 0 < off < self.height:
                 if(a%2==0):
