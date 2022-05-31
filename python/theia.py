@@ -556,6 +556,9 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
     while run:
         if shared_list[1] == 1:
             shared_list[1] = 0
+            if shared_list[3] == 'sensor':
+                cam.update_data(shared_list[4])
+                shared_list[3] = 0
             if shared_list[2] == "video":
                 video_capture ^= True
                 if video_capture:
@@ -576,9 +579,6 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
                 cam.feed.release()
                 cv2.destroyAllWindows()
                 break
-            elif shared_list[3] == 'sensor':
-                cam.update_data(shared_list[4])
-                shared_list[3] = 0
             elif shared_list[2] == 'hud':
                 cam.hud != cam.hud
             else:
