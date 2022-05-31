@@ -453,7 +453,11 @@ def image_aqusition_thread(connection, boli):
     old_list = []
     first = True
     width = 1280
-
+    lower_2 = np.array([0,80,140])
+    upper_2 = np.array([18,255,255])
+    lower_red = np.array([166,155,121])
+    upper_red = np.array([180,255,255])
+    masks = [lower_2, upper_2, lower_red, upper_red]
     st_list = [] # List of images to stitch
     ath = Athena()
     merd = AutoMerd(50, 1, (1280, 720))
@@ -494,7 +498,7 @@ def image_aqusition_thread(connection, boli):
                 #time_list.append(time.time()-start)
                 connection.send(mached_list)
             elif mode == 2:
-                pix = to_bitmap(mess[0])
+                pix = to_bitmap(mess[0], masks)
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
