@@ -154,6 +154,7 @@ class AutoMerd:
         self.offset_mult = pidK
 
     def new_data(self, xpos, ypos):
+        vect = (0,0)
         if self.horisontal: # Horisontal direction, compensation for above/under rope
             if ypos:
                 temp = ypos - self.ycenter
