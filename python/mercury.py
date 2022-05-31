@@ -296,7 +296,6 @@ class Mercury:
                     message = json.loads(message)
                     for item in message:
                         if item[0] < 200:
-                            print(message)
                             if self.status['USB']:
                                 mld = serial_package_builder(item, True)
                                 if not isinstance(mld, bytearray):
