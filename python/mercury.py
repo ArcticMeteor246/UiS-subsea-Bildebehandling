@@ -295,9 +295,8 @@ class Mercury:
                 else:
                     message = json.loads(message)
                     for item in message:
-                        #if item[0] != 70: # Vær grei å fjern testprints etter test!
-                        #    print(item)
                         if item[0] < 200:
+                            print(message)
                             if self.status['USB']:
                                 mld = serial_package_builder(item, True)
                                 if not isinstance(mld, bytearray):
@@ -423,12 +422,14 @@ class Mercury:
             self.serial.write(b"t")
             self.serial_thread = threading.Thread(name = "Serial_thread", target=USB_thread, daemon=True, args=(self.serial, self.USB_callback, self.status)).start()
 
+
     def update_hud_data(self):
         if self.thei.camera_status['front'][0]:
             self.thei.host_cam_front.send(self.sensor)
             return True
         else: 
             return False
+
 
     def ping(self):
         if self.status['USB']:
