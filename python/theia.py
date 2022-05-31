@@ -151,8 +151,8 @@ class Camera():
         self.length3 = int(width/36) # Cursor length
         self.length4 = int(self.length3/4) # Cursor spacing and triangle side length
         self.center = (width/4, height/2) # Center of picture
-        self.squarestart = [int(self.center[0]-self.length-self.length4-100), int(self.center[1]-self.length-8)]
-        self.squarestop = [int(self.center[0]-self.length-self.length4-60), int(self.center[1]+self.length+10)]
+        self.squarestart = [int(self.center[0]-self.length-self.length4-100), int(self.center[1]-self.length)]
+        self.squarestop = [int(self.center[0]-self.length-self.length4-60), int(self.center[1]+self.length)]
         self.cursor = Cursor(self.length3, self.length4, self.center)
         self.left = int(width/4-self.length3/2)
         self.right = int(width/4+self.length3/2)
@@ -162,7 +162,6 @@ class Camera():
             self.feed = cv2.VideoCapture(self.id, cv2.CAP_V4L2)
         else:
             self.feed = cv2.VideoCapture(self.id)
-        self.dept = 0
         self.set_picture_size(self.width, self.height)
         #self.feed.set(cv2.CAP_PROP_FPS, framerate)
         self.feed.set(cv2.CAP_PROP_AUTOFOCUS, 3)
@@ -250,26 +249,19 @@ class Camera():
                 cv2.putText(pic, f'{a}', (int(self.right+length+10), int(off+5)), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2) # 20 deg right text
                 cv2.line(pic, (self.left-length, off), (self.left, off), self.color, 2) # 20 deg left
                 #cv2.putText(pic, f'{a}', (self.left-length-45, off+5), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2) # 20 deg left text
-        
-        # Depth
         dept = self.sensor['gyro'][0]
-        self.dept += 0.3
-        dept = int(self.dept)
-        if self.dept > 3000:
-            self.dept = 0
+        dept = 2400
         
-        # Depth bar
         cv2.rectangle(pic, self.squarestart, self.squarestop, self.color, 2)
         cv2.putText(pic, f'Depth', (int(self.squarestart[0]-10) ,int(self.squarestart[1]-10)), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2)
         
-        # Depth bar lines
-        offset = int(dept - math.floor(dept/10)*10) * 3
-        dep_text = int(dept/10)*10 - 10 # last digit to 0
+        offset = int(dept+10 - math.floor(dept/10)*10)
+        dep_text = int(int(dept/10)*10)
         for a in range(100 , 0 , -10):
-            cv2.line(pic, (int(self.squarestart[0]+4), int(self.squarestart[1]+a*3-offset)), (int(self.squarestop[0]-4), int(self.squarestart[1]+a*3-offset)), self.color, 2)
-            if a != 0:
-                space = len(f'{(a-40+dep_text)}')
-                cv2.putText(pic, f'{(a-40+dep_text)}', (int(self.squarestart[0]-space*15-30), int(self.squarestart[1]+a*3-offset+5)), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2)
+            cv2.line(pic, (int(self.squarestart[0]+4), int(self.squarestart[1]+a*3+offset)), (int(self.squarestop[0]-4), int(self.squarestart[1]+a*3+offset)), self.color, 2)
+            if a != 50 and a != 0:
+                space = len(f'{(a-50+dep_text)}')
+                cv2.putText(pic, f'{(a-50+dep_text)}', (int(self.squarestart[0]-space*15-30), int(self.squarestart[1]+a*3+offset+5)), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2)
         space = len(f'{(dept)}')
         
         points = np.array(self.cursor.get_points(self.sensor['gyro'][1]))
@@ -464,6 +456,7 @@ def image_aqusition_thread(connection, boli):
 
     st_list = [] # List of images to stitch
     ath = Athena()
+    merd = AutoMerd(50, 1, (1280, 720))
     new_pic = False
     stitch = False
     while boli:
@@ -479,6 +472,7 @@ def image_aqusition_thread(connection, boli):
             elif mess.lower() == 'fish': # Sets mode
                 mode = 1
             elif mess.lower() == 'automerd':
+                merd = AutoMerd(50, 1, (1280, 720))
                 mode = 2
             elif mess.lower() == 'mosaikk': # Sets mode
                 ln('Mode in IA set to  3')
@@ -500,8 +494,11 @@ def image_aqusition_thread(connection, boli):
                 #time_list.append(time.time()-start)
                 connection.send(mached_list)
             elif mode == 2:
-                #!! TODO Place function  here
-                pass
+                pix = to_bitmap(mess[0])
+                vertical = find_vertical_line(pix)
+                horizontal = find_horizontal_line(pix)
+                msg = merd.new_data(vertical, horizontal)
+                # connection.send(msg) # Send data to camera thread
             elif mode == 3:
                 if new_pic:
                     new_pic = False
@@ -601,6 +598,19 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, loc
                 frame_count = 0
                 if picture_IA_pipe.poll():
                     draw_frames = picture_IA_pipe.recv()
+                picture_IA_pipe.send([pic, pic2])
+        elif mode == 2:
+            pic, pic2 = cam.aq_image(True, take_pic)
+            take_pic = False
+            if pic is False:
+                cam.feed.release()
+                cv2.destroyAllWindows()
+                cam = Camera(camera_id)
+            frame_count += 1
+            if frame_count > 5: 
+                if picture_IA_pipe.poll():
+                    control_data = picture_IA_pipe.recv()
+                    connection.send(['merd',control_data])
                 picture_IA_pipe.send([pic, pic2])
         elif mode == 3:
             pic, pic2 = cam.aq_image(True, take_pic)
@@ -796,11 +806,10 @@ class Theia():
     def camera_com_callback(self, msg, name):
         if name == self.cam_front_name:
             #print("Message revived from front camera: "+ msg)
-            self.camera_status[0] = 0
+            if isinstance(msg, list):
+                if msg[0].lower() == 'merd':
+                    print(msg[1])
 
-        elif name == self.cam_back_name:
-            #print("Message revived back camera: "+ msg)
-            self.camera_status[1] = 0
 
     def send_camera_func(self, camera_id, msg):
         if camera_id == 1: # MSG TO FRONT CAMERA

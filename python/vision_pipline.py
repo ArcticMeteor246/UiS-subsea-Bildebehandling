@@ -6,6 +6,9 @@ import math
 from ROV import Rov
 from logging_init import generate_logging
 import timeit
+from theia import Camera
+
+from yolo_detect import camera
 
 
 ##------------------------Klasser------------------------------------##
@@ -212,7 +215,7 @@ def calc_distance(centers, focal_len=2098, camera_space=60, int_float: int=0): #
 
 
 if __name__ == "__main__":
-    a = 2
+    a = 3
     if a == 1:
         main_logger = generate_logging(log_name="VP_main_test",log_file_name="VP_main.log")
         vid = cv2.VideoCapture(0)
@@ -250,3 +253,10 @@ if __name__ == "__main__":
             cv2.imshow('String', pic_stiched)
             cv2.imwrite('C:\Skole\BACH\sybilder\\done.png',pic_stiched)
             cv2.waitKey(0)
+    elif a == 3:
+        c  = Camera(0)
+        while True:
+            b = c.aq_image()
+            if cv2.waitKey():
+                break
+            cv2.imshow('string', b)
