@@ -10,6 +10,7 @@ import cv2
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from io import StringIO
 import time
+from simplejpeg import encode_jpeg
 capture=None
 
 class CamHandler(BaseHTTPRequestHandler):
@@ -37,24 +38,23 @@ class CamHandler(BaseHTTPRequestHandler):
                             # if not rc:
                             #     continue
                             # imgRGB=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
-                            _, jpg = cv2.imencode(".jpg", img)
+                            #encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 30]
+                            #_, jpg = cv2.imencode(".jpg", img, encode_param)
+                            jpg = encode_jpeg(img, 95, 'BGR')
                             self.wfile.write(b"--frame\n")
-                            self.send_header('Content-type','image/jpeg')
+                            self.send_header('Content-type','image/jpg')
                             self.send_header('Content-length',str(len(jpg)))
                             self.end_headers()
                             self.wfile.write(bytes(jpg))
                             #time.sleep(0.016)
                     else:
-                        try:
-                            self.blank
-                        except:
-                            self.blank = cv2.imread("blank.jpg")
-                            _, self.blankjpg = cv2.imencode(".jpg", self.blank)
-                        self.wfile.write(b"--frame\n")
-                        self.send_header('Content-type','image/jpeg')
-                        self.send_header('Content-length',str(len(self.blankjpg)))
-                        self.end_headers()
-                        self.wfile.write(bytes(self.blankjpg))
+                        with open("blank.jpg", 'rb') as file:
+                            blank_img = file.read()
+                            self.wfile.write(b"--frame\n")
+                            self.send_header('Content-type','image/jpeg')
+                            self.send_header('Content-length',str(len(blank_img)))
+                            self.end_headers()
+                            self.wfile.write(blank_img)
                 except KeyboardInterrupt:
                     break
             return
