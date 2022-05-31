@@ -253,10 +253,7 @@ class Camera():
         
         # Depth
         dept = self.sensor['gyro'][0]
-        self.dept += 0.3
         dept = int(self.dept)
-        if self.dept > 3000:
-            self.dept = 0
         
         # Depth bar
         cv2.rectangle(pic, self.squarestart, self.squarestop, self.color, 2)
