@@ -116,6 +116,7 @@ def merd_yaw(pic1, pic2, orb):
         pic2 = cv2.GaussianBlur(pic2,(25,25),0)
         pic1 = cv2.cvtColor(pic1, cv2.COLOR_BGR2GRAY)
         pic2 = cv2.cvtColor(pic2, cv2.COLOR_BGR2GRAY)
+        bf = cv2.BFMatcher.create( cv2.NORM_HAMMING, crossCheck=True )
         kp1, des1 = orb.detectAndCompute(pic1 ,None)
         kp2, des2 = orb.detectAndCompute(pic2 ,None)
         failed = False
