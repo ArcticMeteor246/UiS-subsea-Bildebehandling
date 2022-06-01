@@ -1,4 +1,6 @@
 from ast import While
+from cProfile import run
+from dataclasses import asdict
 from email import message
 from importlib import import_module
 import threading, mjpeg_stream, cv2, time, math
@@ -232,9 +234,9 @@ class Camera():
                     pos = (item.rectangle[0][0], item.rectangle[0][1]+40) # For readability
                     cv2.putText(pic, item.name, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 3) # Red text
                     cv2.putText(pic, item.name, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1) # White background
-                    if item.dept != 0: # Draws dept esitmation if there is one
-                        cv2.putText(pic, f'Distance:{int(item.dept)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 3, cv2.LINE_AA)
-                        cv2.putText(pic, f'Distance:{int(item.dept)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
+                    if item.true_width != 0: # Draws dept esitmation if there is one
+                        cv2.putText(pic, f'Width: {int(item.true_width)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 3, cv2.LINE_AA)
+                        cv2.putText(pic, f'Width: {int(item.true_width)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
         if self.hud:
             self.draw_hud(pic)
     
@@ -474,7 +476,7 @@ def image_aqusition_thread(connection, boli):
             if first:
                 first = False
                 s = mess[0].shape
-                yal = Yolo((s[1], s[0]))
+                yal = Yolo( (s[1], s[0]) )
         if isinstance(mess, str):
             if mess.lower() == 'stop': # Stoppes thread
                 break
@@ -496,10 +498,11 @@ def image_aqusition_thread(connection, boli):
                 mached_list = []
                 if len(mess) == 2:
                     res1 = yal.yolo_image(mess[0]) # Result from left cam
-                    res2 = yal.yolo_image(mess[1]) # Result from right cam
-                    if len(res1) > 0 and len(res2) > 0:
+                    #res2 = yal.yolo_image(mess[1]) # Result from right cam
+                    #if len(res1) > 0 and len(res2) > 0:
                         #mached_list = find_same_objects(res1, res2, mess) # Old funtion
-                        mached_list = ath.compare_pixles(res1, res2, mess)
+                        #mached_list = ath.compare_pixles(res1, res2, mess)
+                    mached_list = check_objects_calc_size(res1)
                 #time_list.append(time.time()-start)
                 connection.send(mached_list)
             elif mode == 2:
@@ -721,13 +724,70 @@ def check_overlap(obj_list):
     for a, b in enumerate(obj_list):
         if a != len(obj_list)-1:
             for obj in obj_list[a+1:]:
-                if obj.rectangle[0][0] < b.position[0] < obj.rectangle[1][0]:
-                    if obj.rectangle[0][1] < b.position[1] < obj.rectangle[1][1]:
-                        del_list.append(b)
-                        break
+                if is_overlap(b.position, obj.rectangle):
+                    del_list.append(b)
+                    break
     for a in del_list:
         obj_list.remove(a)
     return obj_list
+
+def is_overlap(center, box):
+    # a-------+
+    # |       |
+    # +-------b
+    a_x, a_y = box[0][0], box[0][1]
+    b_x, b_y = box[1][0], box[1][1]
+    center_x, center_y = center[0], center[1]
+
+    return True if a_x < center_x < b_x and a_y < center_y < b_y else False
+
+def calc_size_fish(fishlist):
+    # fishlist is always 2 items, [head, tail]
+    head_tail_width = fishlist[0].width + fishlist[1].width
+    true_width = 34 #cm = 33
+
+    # Head is left
+    if fishlist[0].position[0] < fishlist[1].position[0]:
+        pix_total_width = fishlist[1].rectangle[1][0] - fishlist[0].rectangle[0][0]
+
+    # Tail is left
+    else:
+        pix_total_width = fishlist[0].rectangle[1][0] - fishlist[0].rectangle[0][0]
+
+    return true_width * pix_total_width / head_tail_width
+
+
+def check_objects_calc_size(objects):
+    rubber_list = {"rubberfish":[], "head":[], "tail":[]}
+    out = []
+    
+    for a in objects:
+        if str(a.name).lower() in rubber_list.keys():
+            rubber_list[str(a.name).lower()].append(a)
+
+    for key in rubber_list.keys():
+        if len(rubber_list[key]) > 1:
+            rubber_list[key] = check_overlap(rubber_list[key])
+    if len(rubber_list["rubberfish"]) > 0 and len(rubber_list["head"]) > 0 and len(rubber_list["tail"]) > 0:
+        for fish in rubber_list["rubberfish"]:
+            temp_list = []
+            for head in rubber_list["head"]:
+                if is_overlap(head.position, fish.rectangle):
+                    temp_list.append(head)
+                    break
+            if len(temp_list) > 0:
+                for tail in rubber_list["tail"]:
+                    if is_overlap(tail.position, fish.rectangle):
+                        temp_list.append(tail)
+                        break
+            if len(temp_list) == 2:
+                fish.true_width = calc_size_fish(temp_list)
+
+    return rubber_list["rubberfish"]
+
+            
+
+
 
 #TODO cli_runtime
 # Funksjon som håndterer en commandline interface for prossesser (slik at man kan styre ting når man tester)
@@ -843,15 +903,39 @@ class Theia():
 
 if __name__ == "__main__":
     print("Main=Theia")
-    s = Theia()
+    #s = Theia()
     #s.camera_status['front'][1] = 1
     #s.cam_front_id = 1
     
-    s.toggle_front(local = True)
+    #s.toggle_front(local = True)
     #s.toggle_back()
-    print(time.asctime())
+    #print(time.asctime())
     
     #s.toggle_back()
+    video = "/home/subsea/UiS-subsea-Bildebehandling/python/vid_Mon May  9 15:18:58 2022.mp4"
+    cap = cv2.VideoCapture(video)
+
+    yal = Yolo( (1280,720) )
+    iir_size = 0
+    while(cap.isOpened()):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        if ret == True:
+            res1 = yal.yolo_image(frame)
+            mached_list = check_objects_calc_size(res1)
+            if not mached_list == []:
+                for a in mached_list:
+                    if a.true_width > 0:
+                        if iir_size == 0:
+                            iir_size = a.true_width
+                        else:
+                            iir_size = iir_size * 0.8 + (a.true_width-1) * 0.2
+                        print(iir_size)
+        else: 
+            break
+    cap.release()
+    print("video")
+
     for __ in range(9999999):
         time.sleep(5)
         #s.host_cam_front.send(0)

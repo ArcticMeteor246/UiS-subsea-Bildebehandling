@@ -24,7 +24,7 @@ class Yolo(): #
     def __init__(self, resol, name:str = 'Rubberfish') -> None:
         self.device = select_device('') # Finds possible hardware to use
         print(self.device)
-        self.weights = 'yolov5/models/rubber_nano.pt' # Used machine learning
+        self.weights = 'yolov5/models/best.pt' # Used machine learning
         self.data = 'yolov5/data/coco128.yaml' 
         self.conf_trees = 0.40 # How high confedence we want for a match
         self.iou_tres = 0.45 
@@ -34,7 +34,7 @@ class Yolo(): #
         imgsz=[640, 640] # Size of pic samples
         self.resolution = resol # Image resolution
         self.imgsz = check_img_size(imgsz, s=self.model.stride)
-        tride, names, pt, jit, onnx, engine = self.model.stride, self.model.names, self.model.pt, self.model.jit, self.model.onnx, self.model.engine
+        tride, self.names, pt, jit, onnx, engine = self.model.stride, self.model.names, self.model.pt, self.model.jit, self.model.onnx, self.model.engine
         if pt or jit:
             self.model.model.float()
         self.model.warmup(imgsz=(1, 3, *imgsz))
@@ -54,12 +54,13 @@ class Yolo(): #
             image = image[None] # Adds element to start of list
         pred = self.model(image, augment=False, visualize=False)
         pred = non_max_suppression(pred, self.conf_trees)
+        
         detected_list = []
         for i, detected in enumerate(pred):
             for *xyxy, conf, cls in reversed(detected):
                 wx = (torch.tensor(xyxy).view(1, 4))
                 wx = self.resize_square(wx[0])
-                detected_list.append(Object(wx,self.text, self.color, conf))
+                detected_list.append(Object(wx, self.names[int(cls)], self.color, conf))
         return detected_list
 
 
@@ -109,14 +110,15 @@ def camera(camera_id): #Testfunction to get images from camera
             detected_stuff = yal.yolo_image(frame)
             if len(detected_stuff):
                 for item in detected_stuff:
+                    print(f"{round(time.time())}\t{item.name}")
                     cv2.rectangle(frame, item.rectangle[0], item.rectangle[1], item.colour, item.draw_line_width)
                     cv2.putText(frame, item.name, (item.rectangle[0][0], item.rectangle[0][1]+40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 3)
                     cv2.putText(frame, item.name, (item.rectangle[0][0], item.rectangle[0][1]+40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1)
-        cv2.imshow("Named Frame",frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        #cv2.imshow("Named Frame",frame)
+        #if cv2.waitKey(1) & 0xFF == ord('q'):
+        #    break
     feed.release()
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
 class Object(): # Used in functions to draw on image, find distance to objects etc, refers to objects in pictures
     def __init__(self, xyxy:list, name:str, colour:tuple, confidence:float) -> None:
@@ -129,7 +131,8 @@ class Object(): # Used in functions to draw on image, find distance to objects e
         self.true_width = 0 # Needs to be calulated using another picture and compare positions
         self.areal = self.width*self.height
         self.dept = 0
-        self.name = f'{name}, confidence:{round(float(confidence.cpu().numpy()), 2)}'
+        #self.name = f'{name}, confidence:{round(float(confidence.cpu().numpy()), 2)}'
+        self.name = name
         self.draw_line_width = 2
         self.colour = colour
         self.confidence = confidence
