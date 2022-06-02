@@ -255,7 +255,7 @@ class Camera():
         
         # Depth
         dept = self.sensor['gyro'][0]
-        dept = int(self.dept)
+        #dept = int(self.dept)
         
         # Depth bar
         cv2.rectangle(pic, self.squarestart, self.squarestop, self.color, 2)
