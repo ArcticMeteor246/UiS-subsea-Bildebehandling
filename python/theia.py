@@ -731,6 +731,7 @@ def check_overlap(obj_list):
         obj_list.remove(a)
     return obj_list
 
+
 def is_overlap(center, box):
     # a-------+
     # |       |
@@ -740,6 +741,7 @@ def is_overlap(center, box):
     center_x, center_y = center[0], center[1]
 
     return True if a_x < center_x < b_x and a_y < center_y < b_y else False
+
 
 def calc_size_fish(fishlist):
     # fishlist is always 2 items, [head, tail]

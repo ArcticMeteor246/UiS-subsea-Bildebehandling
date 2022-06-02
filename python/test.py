@@ -11,7 +11,11 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import statistics
-
+from focusvindu import Ui_Auto_focus_settings
+from PyQt5 import (QtGui, QtWidgets)
+from PyQt5.QtWidgets import (QMainWindow, QFileDialog, )
+import sys
+from PyQt5.QtWidgets import QApplication
 
 class Camera():
     def __init__(self, id:int, width:int=2560, height:int=720, framerate:int=30 ) -> None:
@@ -171,7 +175,7 @@ def to_bitmap(pic, masks):
         hsv = cv2.cvtColor(pic, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, masks[0], masks[1])
         mask2 = cv2.inRange(hsv, masks[2], masks[3])
-        _, tempblack = cv2.threshold(b12, 70, 255, cv2.THRESH_BINARY)
+        _, tempblack = cv2.threshold(pic, 70, 255, cv2.THRESH_BINARY)
         canvas = np.zeros(tempblack.shape, np.uint8) # Heil svart maske
         mas2 = cv2.bitwise_or(mask, mask2, canvas)
         kernel = np.ones((5,5),np.uint8)
@@ -210,21 +214,67 @@ def merd_yaw(pic1, pic2, orb):
         else:
             return False
 
-class Maske_gui:
-    def __init__(self) -> None:
-        self.h1_slider = 1
-        self.h2_slider = 1
-        self.s1_slider = 1
-        self.s2_slider = 1
-        self.v1_slider = 1
-        self.v2_slider = 1
-
+class Maske_gui(QtWidgets.QDialog, Ui_Auto_focus_settings):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        self.parameters = {
+            'h1':0 ,
+            's1':0 ,
+            'v1':0 ,
+            '1_upper':0 ,
+            'h2':0 ,
+            's2':0 ,
+            'v2':0 ,
+            '2_upper':0 ,
+        }
+        self.Pink_slider_1.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_1, self.Pink_spin_1, 'h1'))
+        self.Pink_slider_2.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_2, self.Pink_spin_2, 's1'))
+        self.Pink_slider_3.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_3, self.Pink_spin_3, 'v1'))
+        self.Pink_slider_4.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_4, self.Pink_spin_4, '1_upper'))
+        self.Pink_slider_5.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_5, self.Pink_spin_5, 'h2'))
+        self.Pink_slider_6.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_6, self.Pink_spin_6, 's2'))
+        self.Pink_slider_7.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_7, self.Pink_spin_7, 'v2'))
+        self.Pink_slider_8.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_8, self.Pink_spin_8, '2_upper'))
+        self.Pink_spin_1.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_1, self.Pink_slider_1, 'h1'))
+        self.Pink_spin_2.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_2, self.Pink_slider_2, 's1'))
+        self.Pink_spin_3.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_3, self.Pink_slider_3, 'v1'))
+        self.Pink_spin_4.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_4, self.Pink_slider_4, '1_upper'))
+        self.Pink_spin_5.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_5, self.Pink_slider_5, 'h2'))
+        self.Pink_spin_6.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_6, self.Pink_slider_6, 's2'))
+        self.Pink_spin_7.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_7, self.Pink_slider_7, 'v2'))
+        self.Pink_spin_8.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_8, self.Pink_slider_8, '2_upper'))
+        self.img = cv2.imread('blank.jpg')
     
+    def change_value(self, slider, spin, index, div=0):
+        div = 10 ** div
+        if div == 1:
+            self.parameters[index] = slider.sliderPosition()
+        else:
+            self.parameters[index] = slider.sliderPosition() / div
+        spin.setValue(self.parameters[index])
 
+    def change_value_spin(self, spin, slider, index, mult=0):
+        mult = 10 ** mult
+        self.parameters[index] = spin.value()
+        if mult == 1:
+            slider.setSliderPosition(int(self.parameters[index]))
+        else:
+            slider.setSliderPosition(int(self.parameters[index] * mult))
+        self.mask_pic()
     
+    def mask_pic(self):
+        lower_2 = np.array([self.parameters['h1'],self.parameters['s1'],self.parameters['v1']])
+        upper_2 = np.array([self.parameters['1_upper'],255,255])
+        lower_red = np.array([self.parameters['h2'],155,121])
+        upper_red = np.array([180,255,255])
+        masks = [lower_2, upper_2, lower_red, upper_red]
+        img = to_bitmap(self.img, masks)
+        cv2.imshow('frame', img)
+        cv2.waitKey(0) # waits until a key is pressed
+        cv2.destroyAllWindows() # destroys the window showing image
 
-
-if __name__ == "__main__":
+def main1():
     c = Camera(1)
     orb = cv2.ORB_create()
     bf = cv2.BFMatcher.create(cv2.NORM_HAMMING, crossCheck=True )
@@ -316,3 +366,12 @@ if __name__ == "__main__":
 
         #plt.show()
     cv2.destroyAllWindows()
+
+def main2():
+    app = QApplication(sys.argv)
+    win = Maske_gui()
+    win.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main2()
