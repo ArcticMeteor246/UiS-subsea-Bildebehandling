@@ -210,6 +210,20 @@ def merd_yaw(pic1, pic2, orb):
         else:
             return False
 
+class Maske_gui:
+    def __init__(self) -> None:
+        self.h1_slider = 1
+        self.h2_slider = 1
+        self.s1_slider = 1
+        self.s2_slider = 1
+        self.v1_slider = 1
+        self.v2_slider = 1
+
+    
+
+    
+
+
 if __name__ == "__main__":
     c = Camera(1)
     orb = cv2.ORB_create()
