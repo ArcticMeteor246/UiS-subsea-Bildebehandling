@@ -16,6 +16,7 @@ from PyQt5 import (QtGui, QtWidgets)
 from PyQt5.QtWidgets import (QMainWindow, QFileDialog, )
 import sys
 from PyQt5.QtWidgets import QApplication
+import threading
 
 class Camera():
     def __init__(self, id:int, width:int=2560, height:int=720, framerate:int=30 ) -> None:
@@ -220,13 +221,13 @@ class Maske_gui(QtWidgets.QDialog, Ui_Auto_focus_settings):
         self.setupUi(self)
         self.parameters = {
             'h1':0 ,
-            's1':0 ,
-            'v1':0 ,
-            '1_upper':0 ,
-            'h2':0 ,
-            's2':0 ,
-            'v2':0 ,
-            '2_upper':0 ,
+            's1':80 ,
+            'v1':140 ,
+            '1_upper':18 ,
+            'h2':166 ,
+            's2':155 ,
+            'v2':121 ,
+            '2_upper':180 ,
         }
         self.Pink_slider_1.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_1, self.Pink_spin_1, 'h1'))
         self.Pink_slider_2.actionTriggered.connect(lambda: self.change_value(self.Pink_slider_2, self.Pink_spin_2, 's1'))
@@ -245,7 +246,19 @@ class Maske_gui(QtWidgets.QDialog, Ui_Auto_focus_settings):
         self.Pink_spin_7.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_7, self.Pink_slider_7, 'v2'))
         self.Pink_spin_8.valueChanged.connect(lambda: self.change_value_spin(self.Pink_spin_8, self.Pink_slider_8, '2_upper'))
         self.img = cv2.imread('blank.jpg')
+        self.startup_positons()
+        threading.Thread(name="COM_cam_1",target=mask_pic, daemon=True, args=(self.parameters, self.img)).start()
     
+    def startup_positons(self):
+        self.Pink_spin_1.setValue(self.parameters['h1'])
+        self.Pink_spin_2.setValue(self.parameters['s1'])
+        self.Pink_spin_3.setValue(self.parameters['v1'])
+        self.Pink_spin_4.setValue(self.parameters['1_upper'])
+        self.Pink_spin_5.setValue(self.parameters['h2'])
+        self.Pink_spin_6.setValue(self.parameters['s2'])
+        self.Pink_spin_7.setValue(self.parameters['v2'])
+        self.Pink_spin_8.setValue(self.parameters['2_upper'])
+
     def change_value(self, slider, spin, index, div=0):
         div = 10 ** div
         if div == 1:
@@ -261,18 +274,19 @@ class Maske_gui(QtWidgets.QDialog, Ui_Auto_focus_settings):
             slider.setSliderPosition(int(self.parameters[index]))
         else:
             slider.setSliderPosition(int(self.parameters[index] * mult))
-        self.mask_pic()
     
-    def mask_pic(self):
-        lower_2 = np.array([self.parameters['h1'],self.parameters['s1'],self.parameters['v1']])
-        upper_2 = np.array([self.parameters['1_upper'],255,255])
-        lower_red = np.array([self.parameters['h2'],155,121])
+def mask_pic(parameters, img):
+    while True:
+        temp = np.copy(img)
+        lower_2 = np.array([parameters['h1'], parameters['s1'], parameters['v1']])
+        upper_2 = np.array([parameters['1_upper'],255,255])
+        lower_red = np.array([parameters['h2'],155,121])
         upper_red = np.array([180,255,255])
         masks = [lower_2, upper_2, lower_red, upper_red]
-        img = to_bitmap(self.img, masks)
-        cv2.imshow('frame', img)
-        cv2.waitKey(0) # waits until a key is pressed
-        cv2.destroyAllWindows() # destroys the window showing image
+        temp = to_bitmap(temp, masks)
+        cv2.imshow('frame', temp)
+        cv2.waitKey(50) # waits until a key is pressed
+    cv2.destroyAllWindows() # destroys the window showing image
 
 def main1():
     c = Camera(1)
