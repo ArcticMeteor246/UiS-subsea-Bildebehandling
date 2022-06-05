@@ -141,12 +141,12 @@ def white_balance(img):
 
 
 class Camera():
-    def __init__(self, id:int, width:int=2560, height:int=720, framerate:int=30 ) -> None:
+    def __init__(self, id:int, hud:bool=False, width:int=2560, height:int=720, framerate:int=30 ) -> None:
         self.id = id
         self.height = height
         self.middley = int(height/2) # Center of picture y cord
         self.width = width
-        self.hud = True
+        self.hud = hud
         tru_width = int(width/2)
         self.length = int(width/18) # Long horisontal line for pitch
         self.length2 = int(width/22) # Short horisontal line for pitch
@@ -536,9 +536,9 @@ def image_aqusition_thread(connection, boli):
 
 
 ## Got access to one camera, can aquire images from camera, communicates with main process and can send picutres to image prossesing and stream ##
-def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, local = False):  
+def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_front:bool=False, local = False):  
     print(f'Camera:{camera_id} started')
-    cam = Camera(camera_id)
+    cam = Camera(camera_id, is_front)
     shared_list = [1, 0, 0, 0, 0]
     threading.Thread(name="Camera_con", target=pipe_com, daemon=True, args=(connection, None, None, shared_list)).start()
     fourcc = cv2.VideoWriter_fourcc(*'MPEG')
@@ -850,7 +850,7 @@ class Theia():
                 self.host_cam_front, self.client_cam1 = Pipe()
                 self.send_front_pic, recive_front_pic = Pipe()
                 send_IA_front, recive_IA = Pipe()
-                self.front_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, local))
+                self.front_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, True,local))
                 self.front_camera_prosess.start()
                 self.front_cam_com_thread = threading.Thread(name="COM_cam_1",target=pipe_com, daemon=True, args=(self.host_cam_front, self.camera_com_callback, self.cam_front_name)).start()
                 self.steam_video_prosess = Process(target=mjpeg_stream.run_mjpeg_stream, daemon=True, args=(recive_front_pic, self.port_camfront_feed)).start()
@@ -872,7 +872,7 @@ class Theia():
                 self.host_back, self.client_cam2 = Pipe()
                 send_back_pic, recive_back_pic = Pipe()
                 send_IA2, recive_IA2 = Pipe()
-                self.back_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_back_id, self.client_cam2, send_back_pic, send_IA2, local)).start()
+                self.back_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_back_id, self.client_cam2, send_back_pic, send_IA2, False, local)).start()
                 self.front_cam_com_thread = threading.Thread(name="COM_cam_2",target=pipe_com, daemon=True, args=(self.host_back, self.camera_com_callback, self.cam_front_name)).start()
                 self.steam_video_prosess = Process(target=mjpeg_stream.run_mjpeg_stream, daemon=True, args=(recive_back_pic, self.port_camback_feed)).start()
                 self.camera_status['back'][0] = 1
