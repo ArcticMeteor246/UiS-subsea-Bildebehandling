@@ -254,6 +254,8 @@ class Mercury:
         self.status ={'network': False, 'USB': False, 'intern': False}
         self.function_list = [0,1,2,3,5] # Supported camera functions, 0: No prossesing, 1: Find fish, 3: Mosaikk, 5: Sleep
         self.sensor = {"gyro": (0, 0, 0)}
+        self.old200 = 0
+        self.stopped_autonom = False
 
         # USB socket
         serial_ports = glob.glob('/dev/ttyACM*')
@@ -349,6 +351,8 @@ class Mercury:
                                             self.thei.host_cam_front.send(item[1][key])
                                             if self.old200 == 2 and item[1][key] is not 2:
                                                 self.stopped_autonom = True
+                                            elif item[1][key] == 2:
+                                                self.stopped_autonom = False
                                             self.old200 = item[1][key]
                                         else:
                                             self.network_handler.send(to_json(f'ERROR:{item[1][key]} - Is not a valid camera function'))
