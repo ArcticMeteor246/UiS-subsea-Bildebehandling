@@ -72,7 +72,8 @@ def serial_package_builder(data, can=True):
         if can_id in [64, 96, 128]:
             package += bytes("start\n", "latin")
 
-        elif can_id == 70:
+        elif can_id in [69, 70]:
+            #print("kontroll data")
             # X, Y, Z, rotasjon: int8
             for k in range(4):
                 package += get_byte("int8", can_data[k])
@@ -303,17 +304,17 @@ class Mercury:
                                 else:
                                     self.serial.write(mld)
                             else:
-                                self.network_handler.send(to_json("error usb not connected"))
+                                self.network_handler.send(to_json("ERROR usb not connected"))
                         elif (item[0] == 200) | (item[0] == 201): #Camera_front and back functions
                             if 'on' in item[1]:
                                 if item[0] == 200:
                                     answ = self.thei.toggle_front() # Returns string
-                                    self.network_handler.send(to_json(answ)) # Sends results of toggle
+                                    self.network_handler.send(to_json(f"info: {answ}")) # Sends results of toggle
                                 elif item[0] == 201:
                                     answ = self.thei.toggle_back() # Returns string
-                                    self.network_handler.send(to_json(answ))  # Sends results of toggle
+                                    self.network_handler.send(to_json(f"info: {answ}"))  # Sends results of toggle
                                 else:
-                                    self.network_handler.send(to_json("Invalid camera")) # Not possible to send this in theroy
+                                    self.network_handler.send(to_json("ERROR: Invalid camera")) # Not possible to send this in theroy
                             elif item[0] == 200 and not self.thei.camera_status['front'][0]:
                                 self.network_handler.send(to_json("ERROR: Camera front prossess is not in operation, check camera connection"))
                                 continue
@@ -336,6 +337,7 @@ class Mercury:
                                     else:
                                         self.network_handler.send(to_json("ERROR: USB not connected"))
                                 elif key.lower() == "bildebehandlingsmodus":
+                                    print(f"\tNew mode: {item[1][key]}")
                                     if item[0] == 200: # Front camera
                                         if item[1][key] != 0:
                                             self.thei.camera_function['front'] = True # Image aq status
@@ -356,7 +358,7 @@ class Mercury:
                                         else:
                                             self.thei.camera_function['back'] = False
                                         if item[1][key] in self.function_list:
-                                            self.thei.host_cam_front.send(item[1][key])
+                                            self.thei.host_back.send(item[1][key])
                                         else:
                                             self.network_handler.send(to_json(f'ERROR:{item[1][key]} - Is not a valid camera function'))
 
@@ -431,11 +433,13 @@ class Mercury:
 
     def auto_control(self):
         if self.thei.new_controller_data:
+            self.thei.new_controller_data = False
             data = [0] * 8
             data[1] = max(min(self.thei.controller_data[0], 127), -127)
             data[2] = max(min(self.thei.controller_data[1], 127), -127)
             
-            mld = self.serial_package_builder([70, data])
+            # Fake controllerdata to 
+            mld = serial_package_builder([69, data])
             if not isinstance(mld, bytearray):
                 ln(f'{mld}')
             else:

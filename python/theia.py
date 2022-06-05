@@ -510,7 +510,8 @@ def image_aqusition_thread(connection, boli):
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
-                connection.send(msg) # Send data to camera thread
+                if msg:
+                    connection.send(msg) # Send data to camera thread
             elif mode == 3:
                 if new_pic:
                     new_pic = False
@@ -883,7 +884,7 @@ class Theia():
 
     def camera_com_callback(self, msg, name):
         if name == self.cam_front_name:
-            #print("Message revived from front camera: "+ msg)
+            #print(f"Message revived from front camera: {msg}")
             if isinstance(msg, list):
                 if msg[0].lower() == 'merd':
                     self.controller_data = msg[1]
