@@ -345,6 +345,9 @@ class Mercury:
                                             self.thei.camera_function['front'] = False
                                         if item[1][key] in self.function_list:
                                             self.thei.host_cam_front.send(item[1][key])
+                                            if self.old200 == 2 and item[1][key] is not 2:
+                                                self.stopped_autonom = True
+                                            self.old200 = item[1][key]
                                         else:
                                             self.network_handler.send(to_json(f'ERROR:{item[1][key]} - Is not a valid camera function'))
                                             
