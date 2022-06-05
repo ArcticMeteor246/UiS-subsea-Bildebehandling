@@ -442,9 +442,14 @@ class Mercury:
             data[2] = max(min(self.thei.controller_data[1], 127), -127)
             
             # Fake controllerdata to 
-            mld = serial_package_builder([69, data])
+            if self.stopped_autonom:
+                # Send 0 data pack
+                mld = serial_package_builder([69, [0] * 8])   
+            else:
+                mld = serial_package_builder([69, data])
+
             if not isinstance(mld, bytearray):
-                ln(f'{mld}')
+                ln(f'Feil i auto_control på serial_package_builder: {mld}')
             else:
                 self.serial.write(mld)
 
