@@ -351,6 +351,11 @@ class Mercury:
                                             self.thei.host_cam_front.send(item[1][key])
                                             if self.old200 == 2 and item[1][key] is not 2:
                                                 self.stopped_autonom = True
+                                                mld = serial_package_builder([69, [0] * 8])   
+                                                if not isinstance(mld, bytearray):
+                                                    ln(f'Feil i network_callback på serial_package_builder 69: {mld}')
+                                                else:
+                                                    self.serial.write(mld)
                                             elif item[1][key] == 2:
                                                 self.stopped_autonom = False
                                             self.old200 = item[1][key]
