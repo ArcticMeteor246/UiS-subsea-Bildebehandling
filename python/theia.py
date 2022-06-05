@@ -585,6 +585,8 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_
                     print(f'Mode set to {mode}')
                     if shared_list[2] == 3:
                         picture_IA_pipe.send('mosaikk')
+                    elif shared_list[2] == 1:
+                        picture_IA_pipe.send('fish')
                     elif shared_list[2] == 2:
                         picture_IA_pipe.send('automerd')
                     mode = int(mode)
