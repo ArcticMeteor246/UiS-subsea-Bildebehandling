@@ -486,6 +486,7 @@ def image_aqusition_thread(connection, boli):
     merd = AutoMerd(25, 0.1, (1280, 720))
     new_pic = False
     stitch = False
+    orb = cv2.ORB_create()
     while boli:
         mess = connection.recv()
         if isinstance(mess, list):
@@ -527,7 +528,7 @@ def image_aqusition_thread(connection, boli):
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
-                print(merd_yaw(mess[0], mess[1]))
+                print( merd_yaw(mess[0], mess[1], orb) )
                 if msg:
                     connection.send(msg) # Send data to camera thread
             elif mode == 3:
