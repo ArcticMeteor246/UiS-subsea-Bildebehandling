@@ -25,9 +25,10 @@ class Object(): # Used in functions to draw on image, find distance to objects e
         self.rectanlge = cv2.minAreaRect(contour)
         self.angle = self.rectanlge[2]
         self.box = [np.int0(cv2.boxPoints(self.rectanlge))] # Added into a list due to easier use in draw contours
-        self.position = (int(self.rectanlge[0][0]), int(self.rectanlge[0][1]))
-        self.width = int(self.rectanlge[1][0])
-        self.height = int(self.rectanlge[1][1])
+        self.position = (int(self.rectanlge[0][0]), int(self.rectanlge[0][1])) # Upper right corner
+        self.width = int(self.rectanlge[1][0] - self.rectanlge[0][0])
+        self.height = int(self.rectanlge[1][1] - self.rectanlge[0][1])
+        self.center = int(self.rectanlge[0][0]+self.width, self.rectanlge[0][1]+self.height)
         self.true_width = 0
         self.areal = self.width*self.height
         self.contour = contour
@@ -323,6 +324,8 @@ class Athena():
         self.bf = cv2.BFMatcher.create(cv2.NORM_HAMMING, crossCheck=True )
         self.first = True
         self.old_object_list = []
+        self.first_width = True
+        self.old_width_list = []
         
     # Diffrent methods to compare pixels in multiple pictures
     #stereo = cv2.StereoBM_create(numDisparities=16, blockSize=9)
@@ -358,6 +361,19 @@ class Athena():
         self.old_object_list = new_object_list
         return self.old_object_list
 
+    def check_width(self, new_object_list:list):
+        if self.first_width:
+            self.old_width_list = new_object_list
+            return new_object_list
+        else:
+            if len(new_object_list) == len(self.old_width_list):
+                for a, obj in enumerate(new_object_list):
+                    if self.old_object_list[a].name == obj.name:
+                        if self.old_object_list[a].width*0.8 < obj.width < self.old_object_list[a].width*1.2:
+                            if obj.true_width <= 0:
+                                obj.true_width = self.old_object_list[a].true_width
+                            else:
+                                obj.true_width = self.old_object_list[a].true_width*0.8 + obj.true_width*0.2
 
     def compare_pixles(self, object_list1, object_list2, pic):
         gray = [cv2.cvtColor(pic[0], cv2.COLOR_BGR2GRAY), cv2.cvtColor(pic[1], cv2.COLOR_BGR2GRAY)]
