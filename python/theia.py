@@ -519,6 +519,7 @@ def image_aqusition_thread(connection, boli):
                         #mached_list = find_same_objects(res1, res2, mess) # Old funtion
                         #mached_list = ath.compare_pixles(res1, res2, mess)
                     mached_list = check_objects_calc_size(res1)
+                    mached_list = ath.check_width(mached_list)
                 #time_list.append(time.time()-start)
                 connection.send(mached_list)
             elif mode == 2:
@@ -526,6 +527,7 @@ def image_aqusition_thread(connection, boli):
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
+                print(merd_yaw(mess[0], mess[1]))
                 if msg:
                     connection.send(msg) # Send data to camera thread
             elif mode == 3:
