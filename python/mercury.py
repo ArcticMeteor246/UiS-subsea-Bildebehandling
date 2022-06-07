@@ -73,7 +73,7 @@ def serial_package_builder(data, can=True):
             package += bytes("start\n", "latin")
 
         elif can_id in [69, 70]:
-            #print("kontroll data")
+            if can_data != [0, 0, 0, 0, 64, 0, 0, 0]: print(f"kontroll data for id {can_id}: {can_data}")
             # X, Y, Z, rotasjon: int8
             for k in range(4):
                 package += get_byte("int8", can_data[k])
@@ -182,7 +182,7 @@ def create_json(can_id:int, data:str):
         rull = get_num("int16", data_b[2:4])
         stamp = get_num("int16", data_b[4:6])
         gir = get_num("int16", data_b[6:])
-        json_dict = {"gyro": (hiv, rull/10, stamp/10)}
+        json_dict = {"gyro": (hiv, rull/10, stamp/10, gir/10)}
 #        ln(f"{json_dict}\tdata: {data_b=}")
 
     # Akselerometer
@@ -349,7 +349,7 @@ class Mercury:
                                             self.thei.camera_function['front'] = False
                                         if item[1][key] in self.function_list:
                                             self.thei.host_cam_front.send(item[1][key])
-                                            if self.old200 == 2 and item[1][key] is not 2:
+                                            if self.old200 == 2 and item[1][key] != 2:
                                                 self.stopped_autonom = True
                                                 mld = serial_package_builder([69, [0] * 8])   
                                                 if not isinstance(mld, bytearray):
@@ -447,8 +447,8 @@ class Mercury:
         if self.thei.new_controller_data:
             self.thei.new_controller_data = False
             data = [0] * 8
-            data[1] = max(min(self.thei.controller_data[0], 127), -127)
-            data[2] = max(min(self.thei.controller_data[1], 127), -127)
+            data[1] = int(max(min(self.thei.controller_data[0], 127), -127))
+            data[2] = int(max(min(self.thei.controller_data[1], 127), -127))
             
             # Fake controllerdata to 
             if self.stopped_autonom:

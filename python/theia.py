@@ -483,7 +483,7 @@ def image_aqusition_thread(connection, boli):
     masks = [lower_2, upper_2, lower_red, upper_red]
     st_list = [] # List of images to stitch
     ath = Athena()
-    merd = AutoMerd(25, 0.1, (1280, 720))
+    merd = AutoMerd(20, 0.001, (1280, 720))
     new_pic = False
     stitch = False
     orb = cv2.ORB_create()
@@ -500,7 +500,7 @@ def image_aqusition_thread(connection, boli):
             elif mess.lower() == 'fish': # Sets mode
                 mode = 1
             elif mess.lower() == 'automerd':
-                merd = AutoMerd(50, 1, (1280, 720))
+                merd = AutoMerd(20, 0.001, (1280, 720))
                 mode = 2
             elif mess.lower() == 'mosaikk': # Sets mode
                 ln('Mode in IA set to  3')
@@ -528,8 +528,9 @@ def image_aqusition_thread(connection, boli):
                 vertical = find_vertical_line(pix)
                 horizontal = find_horizontal_line(pix)
                 msg = merd.new_data(vertical, horizontal)
-                print( merd_yaw(mess[0], mess[1], orb) )
+                #print( merd_yaw(mess[0], mess[1], orb) )
                 if msg:
+                    print(f"Autonom Pådrag: {msg}")
                     connection.send(msg) # Send data to camera thread
             elif mode == 3:
                 if new_pic:
@@ -643,7 +644,7 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_
                 cv2.destroyAllWindows()
                 cam = Camera(camera_id)
             frame_count += 1
-            if frame_count > 5: 
+            if frame_count > 3: 
                 if picture_IA_pipe.poll():
                     control_data = picture_IA_pipe.recv()
                     connection.send(['merd',control_data])
@@ -871,7 +872,7 @@ class Theia():
                 self.host_cam_front, self.client_cam1 = Pipe()
                 self.send_front_pic, recive_front_pic = Pipe()
                 send_IA_front, recive_IA = Pipe()
-                self.front_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, True,local))
+                self.front_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, False,local))
                 self.front_camera_prosess.start()
                 self.front_cam_com_thread = threading.Thread(name="COM_cam_1",target=pipe_com, daemon=True, args=(self.host_cam_front, self.camera_com_callback, self.cam_front_name)).start()
                 self.steam_video_prosess = Process(target=mjpeg_stream.run_mjpeg_stream, daemon=True, args=(recive_front_pic, self.port_camfront_feed)).start()
