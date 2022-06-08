@@ -535,20 +535,31 @@ def image_aqusition_thread(connection, boli):
             elif mode == 3:
                 if new_pic:
                     new_pic = False
-                    st_list.append(mess[0])
-                    ln('New pic appended')
-                elif stitch:
-                    stitch = False
-                    if len(st_list) > 1:
+                    if len(st_list) == 0:
+                        st_list.append(mess[0])
+                        print('[Stitch] First pic appended')
+                    elif len(st_list) > 0:
+                        st_list.append(mess[0])
+                        print('[Stitch] Second pic appended, trying to stitch')
                         pic = picure_stich(st_list)
-                        st_list = []
                         if pic != []:
-                            ln('Successfully stiched images')
-                            cv2.imwrite(f'/home/subsea/Bilete/mosaikk/Stitch{time.asctime()}.png',pic)
+                            print('[Stitch] Successfully stiched images')
+                            st_list.clear()
+                            st_list.append(pic)
                         else:
-                            ln('Failed to stich image')
+                            print('[Stitch] Failed to stich image, try taking last again')
+                            st_list.pop(-1)
+
+                elif stitch:
+                    # All images are done, save image
+                    stitch = False
+                    if len(st_list) == 1:
+                        print('[Stitch] Saving image...')
+                        cv2.imwrite(f'/home/subsea/Bilete/mosaikk/Stitch{time.asctime()}.png', st_list[0])
+                        st_list.clear()
                     else:
-                        ln('List too short cant stitch image')
+                        print(f'[Stitch] Error, wrong amount of images in list: {len(st_list)}')
+                        st_list.clear()
         if len(time_list) > 20:
             #print(statistics.mean(time_list))
             time_list = []
