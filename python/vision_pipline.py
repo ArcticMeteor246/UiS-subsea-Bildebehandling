@@ -8,7 +8,7 @@ from logging_init import generate_logging
 import timeit
 #from theia import Camera
 
-from yolo_detect import camera
+#from yolo_detect import camera
 
 
 ##------------------------Klasser------------------------------------##
@@ -215,7 +215,7 @@ def calc_distance(centers, focal_len=2098, camera_space=60, int_float: int=0): #
 
 
 if __name__ == "__main__":
-    a = 3
+    a = 2
     if a == 1:
         main_logger = generate_logging(log_name="VP_main_test",log_file_name="VP_main.log")
         vid = cv2.VideoCapture(0)
@@ -244,15 +244,18 @@ if __name__ == "__main__":
         cv2.destroyAllWindows() 
         cv2.VideoCapture(0).release()
     elif a == 2:
-        pic1 = cv2.imread('C:\Skole\BACH\sybilder\\fish1.png')
-        pic2 = cv2.imread('C:\Skole\BACH\sybilder\\fish2.png')
-        pic3 = cv2.imread('C:\Skole\BACH\sybilder\\fish3.png')
-        pic_list = [pic1, pic2, pic3]
+        pic1 = cv2.imread('C:\\Skole\\bilder\\2.png')
+        pic2 = cv2.imread('C:\\Skole\\bilder\\4.png')
+        pic3 = cv2.imread('C:\\Skole\\bilder\\3.png')
+        pic4 = cv2.imread('C:\\Skole\\bilder\\4.png')
+        pic_list = [pic1, pic2, pic3, pic4]
         pic_stiched = picure_stich(pic_list)
-        if pic_stiched is not []:
+        if not isinstance(pic_stiched, list):
             cv2.imshow('String', pic_stiched)
             cv2.imwrite('C:\Skole\BACH\sybilder\\done.png',pic_stiched)
             cv2.waitKey(0)
+        else:
+            print('Failed to stich')
     elif a == 3:
         c  = Camera(0)
         while True:

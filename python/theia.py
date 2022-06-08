@@ -256,8 +256,8 @@ class Camera():
         
         # Depth
         dept = self.sensor['gyro'][0]
-        #dept = int(self.dept)
-        
+        cv2.putText(pic, f'Heading:{self.sensor["gyro"][2]}', (int(self.center[0], 0)), cv2.FONT_HERSHEY_SIMPLEX, 1 ,self.color, 2)
+
         # Depth bar
         cv2.rectangle(pic, self.squarestart, self.squarestop, self.color, 2)
         cv2.putText(pic, f'Depth', (int(self.squarestart[0]-10) ,int(self.squarestart[1]-10)), cv2.FONT_HERSHEY_SIMPLEX, 1, self.color, 2)
