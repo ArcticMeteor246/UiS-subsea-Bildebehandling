@@ -256,7 +256,7 @@ class Camera():
         
         # Depth
         dept = self.sensor['gyro'][0]
-        cv2.putText(pic, f'Heading:{self.sensor["gyro"][2]}', (int(self.center[0], 0)), cv2.FONT_HERSHEY_SIMPLEX, 1 ,self.color, 2)
+        cv2.putText(pic, f'Heading: {self.sensor["gyro"][2]}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1 ,self.color, 2)
 
         # Depth bar
         cv2.rectangle(pic, self.squarestart, self.squarestop, self.color, 2)
@@ -276,6 +276,7 @@ class Camera():
         cv2.polylines(pic, [points], False, (0,0,255), 2)
         cv2.putText(pic, f'{dept}', (int(self.squarestart[0]-space*15-30), int(self.center[1]+5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
         cv2.line(pic, (int(self.squarestart[0]+4), int(self.center[1])), (int(self.squarestop[0]-4), int(self.center[1])), (0,0,255), 2)
+
     def update_data(self, sens):
         self.sensor = sens
 
@@ -883,9 +884,20 @@ class Theia():
                 self.host_cam_front, self.client_cam1 = Pipe()
                 self.send_front_pic, recive_front_pic = Pipe()
                 send_IA_front, recive_IA = Pipe()
-                self.front_camera_prosess = Process(target=camera_thread, daemon=True, args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, False,local))
+
+                self.front_camera_prosess = Process(
+                    target=camera_thread, 
+                    daemon=True, 
+                    args=(self.cam_front_id, self.client_cam1, self.send_front_pic, send_IA_front, True, local)
+                    )
                 self.front_camera_prosess.start()
-                self.front_cam_com_thread = threading.Thread(name="COM_cam_1",target=pipe_com, daemon=True, args=(self.host_cam_front, self.camera_com_callback, self.cam_front_name)).start()
+
+                self.front_cam_com_thread = threading.Thread(
+                    name="COM_cam_1",
+                    target=pipe_com, 
+                    daemon=True, 
+                    args=(self.host_cam_front, self.camera_com_callback, self.cam_front_name)
+                    ).start()
                 self.steam_video_prosess = Process(target=mjpeg_stream.run_mjpeg_stream, daemon=True, args=(recive_front_pic, self.port_camfront_feed)).start()
                 self.camera_status['front'][0] = 1
                 self.image_AQ_process = Process(target=image_aqusition_thread, daemon=True, args=(recive_IA, True))

@@ -14,9 +14,14 @@ from simplejpeg import encode_jpeg
 capture=None
 
 class CamHandler(BaseHTTPRequestHandler):
-    #def __init__(self, requests, client_address, server):
-    #    BaseHTTPRequestHandler.__init__(self, requests, client_address, server)
-    #    self.blank = cv2.imencode(".jpg", cv2.imread("blank.jpg"))
+    def __init__(self, requests, client_address, server):
+        # Definere egne init rutiner
+        with open("blank.jpg", 'rb') as file:
+            self.blank = file.read()
+            self.blank_len = len(self.blank)
+
+        # Avslutte med oppkall til original init
+        super().__init__(requests, client_address, server)
 
     def do_GET(self):
         if self.path.endswith('.mjpg'):
@@ -25,7 +30,6 @@ class CamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             while True:
                 try:
-                    # rc, img = capture.read()
                     if self.server.pipe.poll(0.2):
                         img = self.server.pipe.recv()
                         if isinstance(img, str):
@@ -35,12 +39,13 @@ class CamHandler(BaseHTTPRequestHandler):
                                 self.server.socket.close()
                                 break
                         else:
-                            # if not rc:
-                            #     continue
-                            # imgRGB=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+                            # OpenCV .jpeg encode
                             #encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 30]
                             #_, jpg = cv2.imencode(".jpg", img, encode_param)
+
+                            # SimpleJpeg encoing
                             jpg = encode_jpeg(img, 95, 'BGR')
+                            
                             self.wfile.write(b"--frame\n")
                             self.send_header('Content-type','image/jpg')
                             self.send_header('Content-length',str(len(jpg)))
@@ -48,13 +53,14 @@ class CamHandler(BaseHTTPRequestHandler):
                             self.wfile.write(bytes(jpg))
                             #time.sleep(0.016)
                     else:
-                        with open("blank.jpg", 'rb') as file:
-                            blank_img = file.read()
-                            self.wfile.write(b"--frame\n")
-                            self.send_header('Content-type','image/jpeg')
-                            self.send_header('Content-length',str(len(blank_img)))
-                            self.end_headers()
-                            self.wfile.write(blank_img)
+                        self.wfile.write(b"--frame\n")
+                        self.send_header('Content-type','image/jpeg')
+                        self.send_header('Content-length',str(self.blank_len))
+                        self.end_headers()
+                        self.wfile.write(self.blank)
+                except BrokenPipeError:
+                    # Request ended, wait for new request
+                    break
                 except KeyboardInterrupt:
                     break
             return
