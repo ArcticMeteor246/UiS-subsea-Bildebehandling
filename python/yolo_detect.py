@@ -10,6 +10,7 @@ import sys
 # Adds yolo submodule to python path, and imports functions
 from os.path import realpath
 sys.path.insert(1, f'{realpath(".")}/yolov5/')
+#sys.path.insert(1, f'C://YOLO//')
 from models.common import DetectMultiBackend
 from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
 from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr,

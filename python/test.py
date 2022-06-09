@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (QMainWindow, QFileDialog, )
 import sys
 from PyQt5.QtWidgets import QApplication
 import threading
+from yolo_detect import Yolo
 
 class Camera():
     def __init__(self, id:int, width:int=2560, height:int=720, framerate:int=30 ) -> None:
@@ -143,6 +144,183 @@ class Camera():
     def update_data(self, sens):
         self.sensor = sens
 
+class Athena(): 
+    def __init__(self) -> None:
+        self.orb = cv2.ORB_create()
+        self.bf = cv2.BFMatcher.create(cv2.NORM_HAMMING, crossCheck=True )
+        self.first = True
+        self.old_object_list = []
+        self.first_width = True
+        self.old_width_list = []
+        
+    # Diffrent methods to compare pixels in multiple pictures
+    #stereo = cv2.StereoBM_create(numDisparities=16, blockSize=9)
+    # 1
+    #sift = cv2.SIFT_create()
+    
+    # 2
+    #orb = cv2.ORB_create()
+    #bf = cv2.BFMatcher()# OLD VERSION, THX OPENCV
+    #bf = cv2.BFMatcher.create(cv2.NORM_HAMMING, crossCheck=True )
+
+    # 3
+    #cv2.FlannBasedMatcher(index_paralgorithm = 1, trees = 5, checks = 50) # index_paralgorithm = FLANN_INDEX_KDTREE = 1
+    def check_last_size(self, new_object_list):
+        if self.first:
+            self.first = False
+            self.old_object_list = new_object_list
+            return new_object_list
+        if len(new_object_list) == len(self.old_object_list):
+            for a, obj in enumerate(new_object_list): # Checks each object if its within 20% of old size and position
+                if self.old_object_list[a].width*0.8 < obj.width < self.old_object_list[a].width*1.2:
+                    #if self.old_object_list[a].position[0]*0.8 < obj.position[0] < self.old_object_list[a].position[0]*1.2:
+                    if obj.dept <= 0:
+#                        ln(f"{obj.dept}, {self.old_object_list[a].dept}")
+                        obj.dept = self.old_object_list[a].dept
+                    elif self.old_object_list[a].dept <= 50:
+                        pass
+                    else:
+ #                       ln(f"{obj.dept}, {self.old_object_list[a].dept}")
+                        obj.dept = self.old_object_list[a].dept*0.8 + obj.dept*0.2
+        elif len(new_object_list) == 0 and len(self.old_object_list) != 0:
+            return self.old_object_list
+        self.old_object_list = new_object_list
+        return self.old_object_list
+
+    def check_width(self, new_object_list:list):
+        if self.first_width:
+            self.old_width_list = new_object_list
+            return new_object_list
+        else:
+            if len(new_object_list) == len(self.old_width_list):
+                for a, obj in enumerate(new_object_list):
+                    if self.old_object_list[a].name == obj.name:
+                        if self.old_object_list[a].width*0.8 < obj.width < self.old_object_list[a].width*1.2:
+                            if obj.true_width <= 0:
+                                obj.true_width = self.old_object_list[a].true_width
+                            else:
+                                obj.true_width = self.old_object_list[a].true_width*0.8 + obj.true_width*0.2
+
+    def compare_pixles(self, object_list1, object_list2, pic):
+        gray = [cv2.cvtColor(pic[0], cv2.COLOR_BGR2GRAY), cv2.cvtColor(pic[1], cv2.COLOR_BGR2GRAY)]
+        new_object_list = []
+        for obj1 in object_list1:
+            for obj2 in object_list2:
+                if obj1.position[1]-100 <= obj2.position[1] <= obj1.position[1]+100:
+                    if obj1.width-50 <= obj2.width <= obj1.width+50:
+                        points = [] # points to crop
+                        points.append(int(obj1.rectangle[0][1]-obj1.height*0.1)) 
+                        points.append(int(obj2.rectangle[0][1]-obj2.height*0.1)) 
+                        points.append(int(obj1.rectangle[0][1]+obj1.height*1.1)) 
+                        points.append(int(obj2.rectangle[0][1]+obj2.height*1.1)) 
+                        points.append(int(obj1.rectangle[0][0]-obj1.width*0.1)) 
+                        points.append(int(obj2.rectangle[0][0]-obj1.width*0.1)) 
+                        points.append(int(obj1.rectangle[0][0]+obj1.width*1.1)) 
+                        points.append(int(obj2.rectangle[0][0]+obj1.width*1.1)) 
+                        for b, a in enumerate(points): # Checks that all points are within picture before crop
+                            if a < 0:
+                                points[b] = 0
+                            if b <= 3:
+                                if a > 720:
+                                    points[b] = 720
+                            else:
+                                if a > 1280:
+                                    points[b] = 1280
+                        crop1 = gray[0][points[0]:points[2], points[4]:points[6]]
+                        crop2 = gray[1][points[1]:points[3], points[5]:points[7]]
+                        offset = obj1.rectangle[0][0]- obj2.rectangle[0][0]
+
+                        # Testprints
+                        #print(f'pos0:{int(obj1.rectangle[0][0])}')
+                        #print(f'pos1:{int(obj1.rectangle[0][1])}')
+                        #a = int(obj1.rectangle[0][0]+obj1.height*0.2)-int(obj2.rectangle[0][0]+obj1.height*0.2)
+                        #b = obj1.rectangle[0][0]- obj2.rectangle[0][0]
+                        #print(f'{(a==b)}')
+                        #print(f'Offset:{offset}')
+                        #print(f'Width1:{obj1.width}, height1:{obj1.height}')
+                        #print(f'Width2:{obj2.width}, height2:{obj2.height}')
+                        #cv2.imshow("TAGE1!!!!", crop1)
+                        #cv2.imshow("TAGE2!!!!", crop2)
+                        #if cv2.waitKey(1) & 0xFF == ord('q'):
+                        #        break
+                        
+                        kp1, des1 = self.orb.detectAndCompute(crop1 ,None)
+                        kp2, des2 = self.orb.detectAndCompute(crop2 ,None)
+                        try:
+                            mached_pixels = self.bf.match(des1, des2)
+                            mached_pixels = sorted(mached_pixels, key = lambda x:x.distance)
+                            print(len(mached_pixels))
+                            new_list = []
+                            for a in mached_pixels:
+                                if a.distance < 100:
+                                    new_list.append(a)
+                        except Exception as i:
+                            print(i)
+                            return
+                        mached_pixels = new_list
+                        #imgDummy = np.zeros((1,1))
+                        #img = cv2.drawMatches(crop1,kp1,crop2,kp2,mached_pixels[:10], imgDummy, flags=2)
+                        #cv2.imshow("TAGE1!!!!", img)
+                        dif_list = []
+                        if len(mached_pixels) > 2:
+                            for a in mached_pixels:
+                                if abs(kp1[a.queryIdx].pt[1] - kp2[a.trainIdx].pt[1]) < 10:
+                                    crop1 = cv2.circle(crop1, (int(kp1[a.queryIdx].pt[0]), int(kp1[a.queryIdx].pt[1])), 4, (255,0,0), -1)
+                                    crop2 = cv2.circle(crop2, (int(kp2[a.trainIdx].pt[0]), int(kp2[a.trainIdx].pt[1])) , 4, (255,0,0), -1)
+                                    dif_list.append(abs(kp1[a.queryIdx].pt[0] - kp2[a.trainIdx].pt[0]+offset))
+                            if len(dif_list) > 2:   
+                                med = statistics.median(dif_list)
+                                if 158 < med < 218:
+                                    obj1.dept = calc_distance(med)
+                                    ln(f"{obj1.dept}")
+                                
+                                # Print for calibration
+                                #print(f'Disparity: {statistics.median(dif_list)}')
+                                
+                                #cv2.imshow("TAGE1!!!!", crop1)
+                                #cv2.imshow("TAGE2!!!!", crop2)
+                                #if cv2.waitKey(1) & 0xFF == ord('q'):
+                                #    break
+                                #pass
+                                #print(f'Mean:{statistics.mean(dif_list)}')
+                                #print(f'Median:{statistics.median(dif_list)}')
+                        #plt.imshow(img),plt.show()
+                        #cv2.imshow("TAGE2!!!!", crop2)
+                        #if cv2.waitKey(1) & 0xFF == ord('q'):
+                        #    break
+            new_object_list.append(obj1)
+        if len(new_object_list) > 1:
+            new_object_list = check_overlap(new_object_list) # Checks for object overlapping
+        new_object_list = self.check_last_size(new_object_list) # Filters distances vales, and sets old if new is not found
+        return new_object_list
+
+def check_objects_calc_size(objects):
+    rubber_list = {"rubberfish":[], "head":[], "tail":[]}
+    out = []
+    
+    for a in objects:
+        if str(a.name).lower() in rubber_list.keys():
+            rubber_list[str(a.name).lower()].append(a)
+
+    for key in rubber_list.keys():
+        if len(rubber_list[key]) > 1:
+            rubber_list[key] = check_overlap(rubber_list[key])
+    if len(rubber_list["rubberfish"]) > 0 and len(rubber_list["head"]) > 0 and len(rubber_list["tail"]) > 0:
+        for fish in rubber_list["rubberfish"]:
+            temp_list = []
+            for head in rubber_list["head"]:
+                if is_overlap(head.position, fish.rectangle):
+                    temp_list.append(head)
+                    break
+            if len(temp_list) > 0:
+                for tail in rubber_list["tail"]:
+                    if is_overlap(tail.position, fish.rectangle):
+                        temp_list.append(tail)
+                        break
+            if len(temp_list) == 2:
+                fish.true_width = calc_size_fish(temp_list)
+
+    return rubber_list["rubberfish"]
 
 def find_horizontal_line(matri): # Returns the ypos with the most white pixels from a bitmap picture
     big = 200000
@@ -288,6 +466,7 @@ def mask_pic(parameters, img):
         cv2.waitKey(50) # waits until a key is pressed
     cv2.destroyAllWindows() # destroys the window showing image
 
+
 def main1():
     c = Camera(1)
     orb = cv2.ORB_create()
@@ -387,5 +566,47 @@ def main2():
     win.show()
     sys.exit(app.exec())
 
+def main3():
+    time_list = []
+    mode = 1 # 1: Find rubberfish, 2: mosaikk 3:TBA 
+    #TODO Her skal autonom kjøring legges inn
+    old_list = []
+    first = True
+    width = 1280
+    lower_2 = np.array([0,80,140])
+    upper_2 = np.array([18,255,255])
+    lower_red = np.array([166,155,121])
+    upper_red = np.array([180,255,255])
+    masks = [lower_2, upper_2, lower_red, upper_red]
+    st_list = [] # List of images to stitch
+    ath = Athena()
+    new_pic = False
+    stitch = False
+    orb = cv2.ORB_create()
+    cap = cv2.VideoCapture('C:\\Skole\\video\\asd.mp4')
+    while (cap.isOpened()):
+        ret, img = cap.read()
+        if first:
+            first = False
+            s = img.shape
+            #yal = Yolo( (1024, 720) )
+        if ret == True:
+            #res1 = yal.yolo_image(img)
+            #mached_list = check_objects_calc_size(res1)
+            #mached_list = ath.check_width(mached_list)
+            cv2.imshow('Frame',img)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+        else:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+
+
+            
+
+
 if __name__ == "__main__":
-    main2()
+    main3()
