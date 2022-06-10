@@ -24,7 +24,7 @@ class Yolo(): #
     def __init__(self, resol, name:str = 'Rubberfish') -> None:
         self.device = select_device('') # Finds possible hardware to use
         print(self.device)
-        self.weights = 'yolov5/models/best.pt' # Used machine learning
+        self.weights = 'yolov5/models/rubber4.pt' # Used machine learning
         self.data = 'yolov5/data/coco128.yaml' 
         self.conf_trees = 0.40 # How high confedence we want for a match
         self.iou_tres = 0.45 

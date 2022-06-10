@@ -73,7 +73,7 @@ def serial_package_builder(data, can=True):
             package += bytes("start\n", "latin")
 
         elif can_id in [69, 70]:
-            if can_data != [0, 0, 0, 0, 64, 0, 0, 0]: print(f"kontroll data for id {can_id}: {can_data}")
+            # if can_data != [0, 0, 0, 0, 64, 0, 0, 0]: print(f"kontroll data for id {can_id}: {can_data}")
             # X, Y, Z, rotasjon: int8
             for k in range(4):
                 package += get_byte("int8", can_data[k])
@@ -227,6 +227,20 @@ def create_json(can_id:int, data:str):
         regulator240w = get_bit(watt_byte, 2)
         regulator1300w = get_bit(watt_byte, 3)
         json_dict = {"regulator_strom_status": (sikring240w, sikring1300w, regulator240w, regulator1300w)}
+    
+    elif can_id == 172:
+        # Rekkefølge
+        # regulering_stamp, regulering_rull, regulering_hiv,
+        # regulering_gir, hiv_pause, gir_pause
+        status = []
+        for i in range(6):
+            status.append(data_b[i] == True)
+        json_dict = {"regulering_status": status}
+
+    elif can_id == 173:
+        hiv_settpunkt = get_num("float", data_b[0:4])
+        gir_settpunkt = get_num("float", data_b[4:8])
+        json_dict = {"settpunkt": ( hiv_settpunkt, gir_settpunkt )}
 
     else:
         json_dict = f"\n\nERROR, ID {can_id} UNKNOWN!\n\n"    
@@ -394,6 +408,9 @@ class Mercury:
                                         self.thei.host_cam_front.send('stitch')
                                     elif item[0] == 201:
                                         self.thei.host_back.send('stitch')
+                                elif key.lower() == 'hud':
+                                    if item[0] == 200:
+                                        self.thei.host_cam_front.send('hud')
                         else:
                             self.network_handler.send(to_json("ERROR:This ID is not handled"))
             except Exception as e:
@@ -449,7 +466,7 @@ class Mercury:
             data = [0] * 8
             data[1] = int(max(min(self.thei.controller_data[0], 127), -127))
             data[2] = int(max(min(self.thei.controller_data[1], 127), -127))
-            
+            ln(f"{data = }")
             # Fake controllerdata to 
             if self.stopped_autonom:
                 # Send 0 data pack

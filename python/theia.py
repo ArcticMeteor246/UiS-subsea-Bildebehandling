@@ -13,11 +13,13 @@ from sys import platform
 import pickle as p
 from yolo_detect import Yolo
 import statistics
+import os
 import matplotlib
 # matplotlib.use('tkAgg') # This broke the code
 from matplotlib import pyplot as plt
 from common import *
 from vision_pipline import picure_stich
+import datetime
 #from distance import contour_img, calc_size, calc_distance
 
 class Object(): # Used in functions to draw on image, find distance to objects etc, refers to objects in pictures
@@ -504,6 +506,7 @@ def image_aqusition_thread(connection, boli):
                 merd = AutoMerd(20, 0.001, (1280, 720))
                 mode = 2
             elif mess.lower() == 'mosaikk': # Sets mode
+                st_list = [] # List of images to stitch
                 ln('Mode in IA set to  3')
                 mode = 3
             elif mess.lower() == 'tpic': # Take new picture and append to image list
@@ -582,6 +585,9 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_
     if not (cam.feed.isOpened()):
         print('Could not open video device')
         run = False
+    logfolder = "/home/subsea/video/"
+    if not os.path.exists(logfolder): # Need to create image folder
+        os.mkdir(logfolder)
     frame_count = 1 # Used to only skip some frames for image AQ
     draw_frames = []
     if not video_feed:
@@ -593,7 +599,9 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_
                 video_capture ^= True
                 if video_capture:
                     print("Started creating video file")
-                    video_write = cv2.VideoWriter(f'vid_{time.asctime()}.mp4', fourcc, 30.0, (cam.crop_width, cam.height))
+                    tid = datetime.datetime.now()
+                    tids_string = f"{tid.year}-{tid.month}-{tid.day} {tid.hour}:{tid.minute}:{tid.microsecond}"
+                    video_write = cv2.VideoWriter(f'/home/subsea/video/vid_{tids_string}.mp4', fourcc, 30.0, (cam.crop_width, cam.height))
                 else:
                     print("Video finished")
                     video_write.release()
@@ -610,7 +618,7 @@ def camera_thread(camera_id, connection, picture_send_pipe, picture_IA_pipe, is_
                 cv2.destroyAllWindows()
                 break
             elif shared_list[2] == 'hud':
-                cam.hud != cam.hud
+                cam.hud = not cam.hud
             else:
                 if isinstance(shared_list[2], int):
                     mode = shared_list[2]

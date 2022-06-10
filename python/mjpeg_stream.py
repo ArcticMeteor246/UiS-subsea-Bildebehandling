@@ -10,6 +10,7 @@ import cv2
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from io import StringIO
 import time
+import numpy
 from simplejpeg import encode_jpeg
 capture=None
 
@@ -42,9 +43,12 @@ class CamHandler(BaseHTTPRequestHandler):
                             # OpenCV .jpeg encode
                             #encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 30]
                             #_, jpg = cv2.imencode(".jpg", img, encode_param)
-
-                            # SimpleJpeg encoing
-                            jpg = encode_jpeg(img, 95, 'BGR')
+                            # SimpleJpeg encoding
+                            if isinstance(img, numpy.ndarray):
+                                jpg = encode_jpeg(img, 95, 'BGR')
+                            else:
+                                print("Error: mjpeg_Stream.py image not bytes")
+                                continue
                             
                             self.wfile.write(b"--frame\n")
                             self.send_header('Content-type','image/jpg')
