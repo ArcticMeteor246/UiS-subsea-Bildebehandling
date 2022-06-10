@@ -377,6 +377,7 @@ class Athena():
                                 obj.true_width = self.old_object_list[a].true_width
                             else:
                                 obj.true_width = self.old_object_list[a].true_width*0.8 + obj.true_width*0.2
+        return self.old_object_list
 
     def compare_pixles(self, object_list1, object_list2, pic):
         gray = [cv2.cvtColor(pic[0], cv2.COLOR_BGR2GRAY), cv2.cvtColor(pic[1], cv2.COLOR_BGR2GRAY)]
@@ -518,14 +519,9 @@ def image_aqusition_thread(connection, boli):
                 start = time.time()
                 mached_list = []
                 if len(mess) == 2:
-                    res1 = yal.yolo_image(mess[0]) # Result from left cam
-                    #res2 = yal.yolo_image(mess[1]) # Result from right cam
-                    #if len(res1) > 0 and len(res2) > 0:
-                        #mached_list = find_same_objects(res1, res2, mess) # Old funtion
-                        #mached_list = ath.compare_pixles(res1, res2, mess)
+                    res1 = yal.yolo_image(mess[0])
                     mached_list = check_objects_calc_size(res1)
                     mached_list = ath.check_width(mached_list)
-                #time_list.append(time.time()-start)
                 connection.send(mached_list)
             elif mode == 2:
                 pix = to_bitmap(mess[0], masks)
@@ -797,7 +793,7 @@ def calc_size_fish(fishlist):
 
     # Tail is left
     else:
-        pix_total_width = fishlist[0].rectangle[1][0] - fishlist[0].rectangle[0][0]
+        pix_total_width = fishlist[0].rectangle[1][0] - fishlist[1].rectangle[0][0]
 
     return true_width * pix_total_width / head_tail_width
 
