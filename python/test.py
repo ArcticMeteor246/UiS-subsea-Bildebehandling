@@ -17,7 +17,72 @@ from PyQt5.QtWidgets import (QMainWindow, QFileDialog, )
 import sys
 from PyQt5.QtWidgets import QApplication
 import threading
-from yolo_detect import Yolo
+import torch
+#sys.path.insert(1, f'{realpath(".")}/yolov5/')
+sys.path.insert(1, f'/home/christoffer/yolov5/')
+from models.common import DetectMultiBackend
+from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
+from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr,
+                           increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
+from utils.plots import Annotator, colors, save_one_box
+from utils.torch_utils import select_device, time_sync
+from utils.augmentations import letterbox
+
+
+class Object(): # Used in functions to draw on image, find distance to objects etc, refers to objects in pictures
+    def __init__(self, xyxy:list, name:str, colour:tuple, confidence:float) -> None:
+        self.rectangle = [(int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3]))]
+        self.angle = 0
+        self.box = 0 #[np.int0(cv2.boxPoints(self.rectanlge))] # Added into a list due to easier use in draw contours
+        self.width = (self.rectangle[1][0] - self.rectangle[0][0]) # Calulates and set width
+        self.height = (self.rectangle[1][1] - self.rectangle[0][1]) # Calulates and set height
+        self.position = (int(self.rectangle[0][0] + self.width/2), int(self.rectangle[0][1] + self.height/2)) # Calulates and set center
+        self.true_width = 0 # Needs to be calulated using another picture and compare positions
+        self.areal = self.width*self.height
+        self.dept = 0
+        #self.name = f'{name}, confidence:{round(float(confidence.cpu().numpy()), 2)}'
+        self.name = name
+        self.draw_line_width = 2
+        self.colour = colour
+        self.confidence = confidence
+
+    @property
+    def get_box(self):
+        return self._box
+
+    @property
+    def get_rectangle(self):
+        return self._rectanlge
+
+    @property
+    def get_position(self):
+        return self._position
+    
+    @property
+    def get_width(self):
+        return self._width
+
+    @property
+    def get_height(self):
+        return self._height
+
+    @property
+    def get_areal(self):
+        return self._areal
+
+    @property
+    def get_dept(self):
+        return self._dept
+
+    def set_dept(self, newdept):
+        self._dept = int(newdept)
+
+    @property
+    def get_true_width(self):
+        return self._true_width
+
+    def set_true_width(self, newwidth):
+        self._true_width = newwidth
 
 class Camera():
     def __init__(self, id:int, width:int=2560, height:int=720, framerate:int=30 ) -> None:
@@ -200,6 +265,7 @@ class Athena():
                                 obj.true_width = self.old_object_list[a].true_width
                             else:
                                 obj.true_width = self.old_object_list[a].true_width*0.8 + obj.true_width*0.2
+        return self.old_object_list
 
     def compare_pixles(self, object_list1, object_list2, pic):
         gray = [cv2.cvtColor(pic[0], cv2.COLOR_BGR2GRAY), cv2.cvtColor(pic[1], cv2.COLOR_BGR2GRAY)]
@@ -293,6 +359,74 @@ class Athena():
             new_object_list = check_overlap(new_object_list) # Checks for object overlapping
         new_object_list = self.check_last_size(new_object_list) # Filters distances vales, and sets old if new is not found
         return new_object_list
+
+
+class Yolo(): # 
+    def __init__(self, resol, name:str = 'Rubberfish') -> None:
+        self.device = select_device('') # Finds possible hardware to use
+        print(self.device)
+        self.weights = 'yolov5/models/rubber5.pt' # Used machine learning
+        self.data = 'yolov5/data/coco128.yaml' 
+        self.conf_trees = 0.40 # How high confedence we want for a match
+        self.iou_tres = 0.45 
+        self.color = (255, 0, 0) # Color for frames drawn around object
+        self.text = name # Text drawn on picture
+        self.model = DetectMultiBackend(self.weights, self.device, False, self.data,)
+        imgsz=[640, 640] # Size of pic samples
+        self.resolution = resol # Image resolution
+        self.imgsz = check_img_size(imgsz, s=self.model.stride)
+        tride, self.names, pt, jit, onnx, engine = self.model.stride, self.model.names, self.model.pt, self.model.jit, self.model.onnx, self.model.engine
+        if pt or jit:
+            self.model.model.float()
+        self.model.warmup(imgsz=(1, 3, *imgsz))
+        self.resize = [float(resol[1])/384, float(resol[0])/640]
+        
+
+    def yolo_image(self, image, test = False): #Find shapes using YOLO (Mostly fish)
+        shape = image.shape
+        gn = torch.tensor(image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+        image = letterbox(image, self.imgsz, stride=self.model.stride, auto=True)[0]
+        image = image.transpose((2, 0, 1))[::-1] # Transpose picture from BGR to RGB, torch needs RGB
+        image = np.ascontiguousarray(image) # Numpy magic
+        image = torch.from_numpy(image).to(self.device) # Everything is faster with torch
+        image = image.float() # Float to later devide color data
+        image /= 255
+        if len(image.shape) == 3: 
+            image = image[None] # Adds element to start of list
+        pred = self.model(image, augment=False, visualize=False)
+        pred = non_max_suppression(pred, self.conf_trees)
+        
+        detected_list = []
+        for i, detected in enumerate(pred):
+            for *xyxy, conf, cls in reversed(detected):
+                wx = (torch.tensor(xyxy).view(1, 4))
+                wx = self.resize_square(wx[0])
+                detected_list.append(Object(wx, self.names[int(cls)], self.color, conf))
+        return detected_list
+
+
+    def resize_square(self, xyxy:list):
+        xyxy = xyxy.numpy()
+        c = 1
+        for a, b in enumerate(xyxy):
+            xyxy[a] = b*self.resize[c]
+            c += 1
+            if c > 1:
+                c = 0
+        return xyxy
+
+
+def draw_on_img(pic, frames):
+    if isinstance(frames, list):
+        if frames != []:
+            for item in frames: # Draws objects on picture
+                cv2.rectangle(pic, item.rectangle[0], item.rectangle[1], item.colour, item.draw_line_width) # Draws rectablge on picture
+                pos = (item.rectangle[0][0], item.rectangle[0][1]+40) # For readability
+                cv2.putText(pic, item.name, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 3) # Red text
+                cv2.putText(pic, item.name, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1) # White background
+                if item.true_width != 0: # Draws dept esitmation if there is one
+                    cv2.putText(pic, f'Width: {int(item.true_width)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,0), 3, cv2.LINE_AA)
+                    cv2.putText(pic, f'Width: {int(item.true_width)} cm',item.position, cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv2.LINE_AA)
 
 def check_objects_calc_size(objects):
     rubber_list = {"rubberfish":[], "head":[], "tail":[]}
@@ -466,6 +600,70 @@ def mask_pic(parameters, img):
         cv2.waitKey(50) # waits until a key is pressed
     cv2.destroyAllWindows() # destroys the window showing image
 
+def check_overlap(obj_list): 
+    del_list = []
+    for a, b in enumerate(obj_list):
+        if a != len(obj_list)-1:
+            for obj in obj_list[a+1:]:
+                if is_overlap(b.position, obj.rectangle):
+                    del_list.append(b)
+                    break
+    for a in del_list:
+        obj_list.remove(a)
+    return obj_list
+
+def is_overlap(center, box):
+    # a-------+
+    # |       |
+    # +-------b
+    a_x, a_y = box[0][0], box[0][1]
+    b_x, b_y = box[1][0], box[1][1]
+    center_x, center_y = center[0], center[1]
+
+    return True if a_x < center_x < b_x and a_y < center_y < b_y else False
+
+def calc_size_fish(fishlist):
+    # fishlist is always 2 items, [head, tail]
+    head_tail_width = fishlist[0].width + fishlist[1].width
+    true_width = 34 #cm = 33
+
+    # Head is left
+    if fishlist[0].position[0] < fishlist[1].position[0]:
+        pix_total_width = fishlist[1].rectangle[1][0] - fishlist[0].rectangle[0][0]
+
+    # Tail is left
+    else:
+        pix_total_width = fishlist[0].rectangle[1][0] - fishlist[1].rectangle[0][0]
+
+    return true_width * pix_total_width / head_tail_width
+
+def check_objects_calc_size(objects):
+    rubber_list = {"rubberfish":[], "head":[], "tail":[]}
+    out = []
+    
+    for a in objects:
+        if str(a.name).lower() in rubber_list.keys():
+            rubber_list[str(a.name).lower()].append(a)
+
+    for key in rubber_list.keys():
+        if len(rubber_list[key]) > 1:
+            rubber_list[key] = check_overlap(rubber_list[key])
+    if len(rubber_list["rubberfish"]) > 0 and len(rubber_list["head"]) > 0 and len(rubber_list["tail"]) > 0:
+        for fish in rubber_list["rubberfish"]:
+            temp_list = []
+            for head in rubber_list["head"]:
+                if is_overlap(head.position, fish.rectangle):
+                    temp_list.append(head)
+                    break
+            if len(temp_list) > 0:
+                for tail in rubber_list["tail"]:
+                    if is_overlap(tail.position, fish.rectangle):
+                        temp_list.append(tail)
+                        break
+            if len(temp_list) == 2:
+                fish.true_width = calc_size_fish(temp_list)
+
+    return rubber_list["rubberfish"]
 
 def main1():
     c = Camera(1)
@@ -583,17 +781,20 @@ def main3():
     new_pic = False
     stitch = False
     orb = cv2.ORB_create()
-    cap = cv2.VideoCapture('C:\\Skole\\video\\asd.mp4')
+    cap = cv2.VideoCapture('/media/christoffer/Windows/Skole/video/asd.mp4')
     while (cap.isOpened()):
         ret, img = cap.read()
         if first:
             first = False
             s = img.shape
-            #yal = Yolo( (1024, 720) )
+            yal = Yolo( (1280, 720) )
         if ret == True:
-            #res1 = yal.yolo_image(img)
-            #mached_list = check_objects_calc_size(res1)
-            #mached_list = ath.check_width(mached_list)
+            res1 = yal.yolo_image(img)
+            mached_list = check_objects_calc_size(res1)
+            mached_list2 = ath.check_width(mached_list)
+            good_list = ath.check_width(mached_list2)
+            if len(good_list) > 0:
+                draw_on_img(img, good_list)
             cv2.imshow('Frame',img)
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
@@ -601,11 +802,6 @@ def main3():
             break
     cap.release()
     cv2.destroyAllWindows()
-
-
-
-
-            
 
 
 if __name__ == "__main__":
